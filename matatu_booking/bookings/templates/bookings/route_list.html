@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Available Routes</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Segoe UI',sans-serif;
+}
+
+body{
+    background:linear-gradient(135deg,#0f172a,#1e293b);
+    min-height:100vh;
+    padding:30px 15px;
+}
+
+.container{
+    max-width:900px;
+    margin:auto;
+}
+
+.page-title{
+    text-align:center;
+    color:white;
+    font-size:2rem;
+    margin-bottom:30px;
+    font-weight:700;
+}
+
+.route-list{
+    list-style:none;
+    display:grid;
+    gap:18px;
+}
+
+.route-card{
+    background:white;
+    border-radius:18px;
+    padding:20px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    box-shadow:0 10px 25px rgba(0,0,0,.15);
+    transition:all .3s ease;
+}
+
+.route-card:hover{
+    transform:translateY(-4px);
+    box-shadow:0 15px 35px rgba(0,0,0,.2);
+}
+
+.route-info{
+    display:flex;
+    align-items:center;
+    gap:15px;
+    flex-wrap:wrap;
+}
+
+.city{
+    font-size:1.1rem;
+    font-weight:600;
+    color:#0f172a;
+}
+
+.arrow{
+    font-size:1.4rem;
+    color:#2563eb;
+    font-weight:bold;
+}
+
+.book-btn{
+    text-decoration:none;
+    background:#2563eb;
+    color:white;
+    padding:12px 24px;
+    border-radius:10px;
+    font-weight:600;
+    transition:.3s;
+}
+
+.book-btn:hover{
+    background:#1d4ed8;
+}
+
+.empty-state{
+    text-align:center;
+    color:white;
+    font-size:1.1rem;
+    margin-top:40px;
+}
+
+/* Mobile */
+@media(max-width:768px){
+
+    .route-card{
+        flex-direction:column;
+        gap:15px;
+        text-align:center;
+    }
+
+    .route-info{
+        justify-content:center;
+    }
+
+    .book-btn{
+        width:100%;
+        text-align:center;
+    }
+
+    .page-title{
+        font-size:1.7rem;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h2 class="page-title">🚌 Available Routes</h2>
+
+    {% if routes %}
+    <ul class="route-list">
+        {% for route in routes %}
+        <li class="route-card">
+
+            <div class="route-info">
+                <span class="city">{{ route.origin }}</span>
+                <span class="arrow">→</span>
+                <span class="city">{{ route.destination }}</span>
+            </div>
+
+            <a href="{% url 'create_booking' route.id %}" class="book-btn">
+                Book Now
+            </a>
+
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+        <div class="empty-state">
+            No routes available at the moment.
+        </div>
+    {% endif %}
+
+</div>
+
+</body>
+</html>

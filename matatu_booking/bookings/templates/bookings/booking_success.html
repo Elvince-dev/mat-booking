@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Booking Successful</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Segoe UI',sans-serif;
+}
+
+body{
+    min-height:100vh;
+    background:linear-gradient(135deg,#0f172a,#1e3a8a);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding:20px;
+}
+
+.success-card{
+    background:#fff;
+    width:100%;
+    max-width:650px;
+    border-radius:20px;
+    overflow:hidden;
+    box-shadow:0 20px 40px rgba(0,0,0,.25);
+}
+
+.header{
+    background:#16a34a;
+    color:white;
+    text-align:center;
+    padding:30px 20px;
+}
+
+.success-icon{
+    font-size:60px;
+    margin-bottom:10px;
+}
+
+.header h1{
+    font-size:2rem;
+    margin-bottom:5px;
+}
+
+.header p{
+    opacity:.9;
+}
+
+.content{
+    padding:30px;
+}
+
+.details{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:15px;
+}
+
+.detail-box{
+    background:#f8fafc;
+    border-radius:12px;
+    padding:15px;
+}
+
+.label{
+    font-size:12px;
+    text-transform:uppercase;
+    color:#64748b;
+    letter-spacing:1px;
+    margin-bottom:6px;
+}
+
+.value{
+    font-size:16px;
+    font-weight:600;
+    color:#0f172a;
+    word-break:break-word;
+}
+
+.status{
+    color:#16a34a;
+}
+
+.actions{
+    margin-top:30px;
+    display:flex;
+    gap:15px;
+    flex-wrap:wrap;
+}
+
+.btn{
+    text-decoration:none;
+    padding:14px 24px;
+    border-radius:10px;
+    font-weight:600;
+    text-align:center;
+    transition:.3s;
+}
+
+.btn-primary{
+    background:#2563eb;
+    color:white;
+}
+
+.btn-primary:hover{
+    background:#1d4ed8;
+}
+
+.btn-secondary{
+    background:#e2e8f0;
+    color:#0f172a;
+}
+
+.btn-secondary:hover{
+    background:#cbd5e1;
+}
+
+@media(max-width:768px){
+
+    .details{
+        grid-template-columns:1fr;
+    }
+
+    .header h1{
+        font-size:1.6rem;
+    }
+
+    .actions{
+        flex-direction:column;
+    }
+
+    .btn{
+        width:100%;
+    }
+}
+</style>
+</head>
+<body>
+
+<div class="success-card">
+
+    <div class="header">
+        <div class="success-icon">✅</div>
+        <h1>Payment Successful</h1>
+        <p>Your booking has been confirmed.</p>
+    </div>
+
+    <div class="content">
+
+        <div class="details">
+
+            <div class="detail-box">
+                <div class="label">Booking Reference</div>
+                <div class="value">{{ booking.reference }}</div>
+            </div>
+
+            <div class="detail-box">
+                <div class="label">Passenger</div>
+                <div class="value">{{ booking.passenger_name }}</div>
+            </div>
+
+            <div class="detail-box">
+                <div class="label">Route</div>
+                <div class="value">{{ booking.route }}</div>
+            </div>
+
+            <div class="detail-box">
+                <div class="label">Seat Number</div>
+                <div class="value">{{ booking.seat_number }}</div>
+            </div>
+
+            <div class="detail-box">
+                <div class="label">Phone Number</div>
+                <div class="value">{{ booking.phone_number }}</div>
+            </div>
+
+            <div class="detail-box">
+                <div class="label">M-Pesa Receipt</div>
+                <div class="value">{{ payment.mpesa_receipt }}</div>
+            </div>
+
+            <div class="detail-box">
+                <div class="label">Status</div>
+                <div class="value status">{{ booking.status }}</div>
+            </div>
+
+        </div>
+
+        <div class="actions">
+
+            <a href="{% url 'download_ticket' booking.id %}" class="btn btn-primary">
+                 Download PDF Ticket
+            </a>
+
+            <a href="/" class="btn btn-secondary">
+             Back Home
+            </a>
+
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>

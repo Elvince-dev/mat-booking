@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Matatu Dashboard</title>
+</head>
+<body>
+
+<h1> Matatu Booking Dashboard</h1>
+
+<hr>
+
+<h2>Total Bookings: {{ total_bookings }}</h2>
+<h2>Confirmed Bookings: {{ confirmed_bookings }}</h2>
+<h2>Failed Payments: {{ failed_bookings }}</h2>
+
+<hr>
+
+<h2>Total Revenue: KES {{ revenue }}</h2>
+<h2>Today's Revenue: KES {{ today_revenue }}</h2>
+<h2>Last 7 Days Revenue: KES {{ week_revenue }}</h2>
+
+<hr>
+<form method="post" action="{% url 'logout' %}">
+    {% csrf_token %}
+    <button type="submit">
+        Logout
+    </button>
+</form>
+<h2>Recent Bookings</h2>
+
+<table border="1" cellpadding="10">
+
+<tr>
+    <th>Reference</th>
+    <th>Passenger</th>
+    <th>Route</th>
+    <th>Seat</th>
+    <th>Status</th>
+</tr>
+
+{% for booking in recent_bookings %}
+<tr>
+    <td>{{ booking.reference }}</td>
+    <td>{{ booking.passenger_name }}</td>
+    <td>{{ booking.route }}</td>
+    <td>{{ booking.seat_number }}</td>
+    <td>{{ booking.status }}</td>
+</tr>
+{% endfor %}
+
+</table>
+
+</body>
+</html>

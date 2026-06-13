@@ -1,0 +1,50 @@
+<h2>Book: {{ route.origin }} → {{ route.destination }}</h2>
+
+<!-- BUS SELECT -->
+<form method="GET">
+  <select name="bus" onchange="this.form.submit()">
+    <option value="">Select Bus</option>
+    {% for bus in buses %}
+      <option value="{{ bus.id }}"
+        {% if selected_bus and selected_bus.id == bus.id %}selected{% endif %}>
+        {{ bus.plate_number }}
+      </option>
+    {% endfor %}
+  </select>
+</form>
+
+<hr>
+
+{% if selected_bus %}
+
+<h3>Select Seat</h3>
+
+<form method="POST">
+  {% csrf_token %}
+
+  <input type="text" name="name" placeholder="Name" required><br><br>
+  <input type="text" name="phone" placeholder="Phone" required><br><br>
+
+  <!-- hidden bus -->
+  <input type="hidden" name="bus" value="{{ selected_bus.id }}">
+
+  <!-- seat selection -->
+  <select name="seat" required>
+    {% for i in "123456789101112131415161718192021222324252627282930" %}
+      {% with seat=forloop.counter %}
+        <option value="{{ seat }}"
+          {% if seat in booked_seats %}disabled{% endif %}>
+          Seat {{ seat }}
+          {% if seat in booked_seats %}(Taken){% endif %}
+        </option>
+      {% endwith %}
+    {% endfor %}
+  </select>
+
+  <br><br>
+  <button type="submit">BOOK SEAT</button>
+</form>
+
+{% else %}
+  <p>Please select a bus to view seats</p>
+{% endif %}
