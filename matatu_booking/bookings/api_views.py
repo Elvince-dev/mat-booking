@@ -1,16 +1,20 @@
 # bookings/api_views.py
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.authentication import SessionAuthentication
-from rest_framework.permissions import AllowAny, IsAdminUser
+from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
+from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.db import IntegrityError
+from django.http import HttpResponse
 from .models import Route, Trip, Bus, Booking
 from .serializers import RouteSerializer, TripSerializer, BookingCreateSerializer, BookingDetailSerializer
 from payments.mpesa import MpesaRequestError, stk_push
 from payments.models import Payment
+from payments.services import confirm_payment_and_send_sms
+from payments.sms import send_sms, sms_was_successful
 import json
 import uuid
 
@@ -61,7 +65,7 @@ def trip_seat_map(request, trip_id):
     Returns full seat layout with booked seats marked.
     """
     trip = get_object_or_404(Trip, id=trip_id)
-    booked_seats = Booking.objects.filter(trip=trip, status__in=['pending_payment', 'confirmed']).values_list('seat_number', flat=True)
+    booked_seats = Booking.objects.filter(trip=trip, status='confirmed').values_list('seat_number', flat=True)
     all_seats = trip.get_seat_layout()
     seat_map = []
     for seat in all_seats:
@@ -80,7 +84,7 @@ def trip_seat_map(request, trip_id):
 
 
 @api_view(['POST'])
-@authentication_classes([])
+@authentication_classes([CsrfExemptSessionAuthentication])
 @permission_classes([AllowAny])
 def create_booking(request):
     """
@@ -113,6 +117,7 @@ def create_booking(request):
 
     passenger_name = request.data.get('passenger_name')
     phone = request.data.get('phone_number')
+    user = request.user if request.user.is_authenticated else None
 
     trip = get_object_or_404(Trip, id=trip_id)
 
@@ -123,12 +128,12 @@ def create_booking(request):
     if invalid_seats:
         return Response({'error': f"Invalid seat selection: {', '.join(invalid_seats)}"}, status=status.HTTP_400_BAD_REQUEST)
 
-    # Check seat availability
+    # Only confirmed bookings occupy seats. Pending bookings wait for payment.
     taken_seats = list(
         Booking.objects.filter(
             trip=trip,
             seat_number__in=seat_numbers,
-            status__in=['pending_payment', 'confirmed'],
+            status='confirmed',
         ).values_list('seat_number', flat=True)
     )
     if taken_seats:
@@ -140,6 +145,7 @@ def create_booking(request):
             bookings = [
                 Booking.objects.create(
                     trip=trip,
+                    user=user,
                     passenger_name=passenger_name,
                     phone_number=phone,
                     seat_number=seat_number,
@@ -153,8 +159,50 @@ def create_booking(request):
     except IntegrityError:
         return Response({'error': 'One of those seats was taken just now. Try again.'}, status=status.HTTP_409_CONFLICT)
 
-    # Trigger M-Pesa STK push
+    payment_method = request.data.get('payment_method') or 'mpesa_direct'
     amount = float(trip.fare) * len(seat_numbers)
+
+    if payment_method == 'mpesa_sms':
+        booking_references = [item.reference for item in bookings]
+        account_number = f"{settings.MPESA_ACCOUNT_PREFIX}-{booking.reference or booking.id}"
+        Payment.objects.create(
+            booking=booking,
+            phone=phone,
+            amount=amount,
+            checkout_request_id=f"SMS-{booking.payment_group or booking.id}",
+            merchant_request_id=account_number,
+            status='PENDING'
+        )
+        message = (
+            f"Njoroline payment instructions:\n"
+            f"PayBill: {settings.MPESA_PAYBILL_NUMBER}\n"
+            f"Account: {account_number}\n"
+            f"Amount: KES {int(amount) if amount.is_integer() else amount}\n"
+            f"Route: {trip.route}\n"
+            f"Seat(s): {', '.join(seat_numbers)}\n"
+            f"Ref: {', '.join(booking_references)}"
+        )
+        sms_response = send_sms(phone, message)
+        sms_sent = sms_was_successful(sms_response) 
+
+        return Response({
+            'booking_id': booking.id,
+            'booking_ids': [item.id for item in bookings],
+            'seat_numbers': seat_numbers,
+            'total_amount': amount,
+            'checkout_request_id': None,
+            'payment_method': 'mpesa_sms',
+            'paybill': settings.MPESA_PAYBILL_NUMBER,
+            'account_number': account_number,
+            'sms_sent': sms_sent,
+            'message': 'Payment instructions sent by SMS.' if sms_sent else 'Booking created. SMS could not be sent, so show these payment instructions to the passenger.'
+        }, status=status.HTTP_201_CREATED)
+
+    if payment_method != 'mpesa_direct':
+        Booking.objects.filter(payment_group=booking.payment_group).update(status='payment_failed')
+        return Response({'error': 'Unsupported payment method'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Trigger M-Pesa STK push
     try:
         mpesa_response = stk_push(phone, amount)
         print("MPESA RESPONSE:", mpesa_response)
@@ -212,8 +260,114 @@ def booking_status(request, booking_id):
     Returns current booking and payment status.
     """
     booking = get_object_or_404(Booking, id=booking_id)
-    serializer = BookingDetailSerializer(booking)
+    serializer = BookingDetailSerializer(booking, context={'request': request})
     return Response(serializer.data)
+
+
+@api_view(['GET'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def download_booking_ticket(request, booking_id):
+    booking = get_object_or_404(
+        Booking.objects.select_related('trip__route', 'trip__bus'),
+        id=booking_id,
+    )
+
+    if booking.status != 'confirmed':
+        return Response({'error': 'Ticket is available after booking confirmation.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    group_bookings = (
+        Booking.objects.filter(payment_group=booking.payment_group)
+        if booking.payment_group
+        else Booking.objects.filter(id=booking.id)
+    ).select_related('trip__route', 'trip__bus').order_by('id')
+
+    payment = Payment.objects.filter(
+        booking__in=group_bookings,
+        status='SUCCESS',
+    ).order_by('-created_at').first()
+
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer
+
+    response = HttpResponse(content_type='application/pdf')
+    reference = booking.reference or f'MTT-{booking.id:06d}'
+    response['Content-Disposition'] = f'attachment; filename="{reference}-ticket.pdf"'
+
+    pdf = SimpleDocTemplate(response, pagesize=A4, title=f'Njoroline Ticket {reference}')
+    styles = getSampleStyleSheet()
+    seats = ', '.join(item.seat_number for item in group_bookings)
+    references = ', '.join(item.reference or f'MTT-{item.id:06d}' for item in group_bookings)
+    trip = booking.trip
+
+    elements = [
+        Paragraph('NJOROLINE E-TICKET', styles['Title']),
+        Spacer(1, 16),
+        Paragraph(f'<b>Passenger:</b> {booking.passenger_name}', styles['Normal']),
+        Paragraph(f'<b>Route:</b> {trip.route}', styles['Normal']),
+        Paragraph(f'<b>Vehicle:</b> {trip.bus.plate_number}', styles['Normal']),
+        Paragraph(f'<b>Date:</b> {trip.date.strftime("%d %b %Y")}', styles['Normal']),
+        Paragraph(f'<b>Departure:</b> {trip.departure_time.strftime("%I:%M %p")}', styles['Normal']),
+        Paragraph(f'<b>Arrival:</b> {trip.arrival_time.strftime("%I:%M %p")}', styles['Normal']),
+        Paragraph(f'<b>Seat(s):</b> {seats}', styles['Normal']),
+        Paragraph(f'<b>Reference:</b> {references}', styles['Normal']),
+        Paragraph(f'<b>Status:</b> Confirmed', styles['Normal']),
+    ]
+
+    if payment:
+        elements.extend([
+            Paragraph(f'<b>M-Pesa Receipt:</b> {payment.mpesa_receipt or "-"}', styles['Normal']),
+            Paragraph(f'<b>Paid:</b> KES {payment.amount}', styles['Normal']),
+        ])
+
+    elements.append(Spacer(1, 20))
+
+    if booking.qr_code:
+        elements.append(Image(booking.qr_code.path, width=150, height=150))
+        elements.append(Spacer(1, 12))
+
+    elements.append(Paragraph('Show this ticket or QR code when boarding.', styles['Italic']))
+    pdf.build(elements)
+
+    return response
+
+
+@api_view(['GET'])
+@authentication_classes([CsrfExemptSessionAuthentication])
+@permission_classes([IsAuthenticated])
+def user_bookings(request):
+    bookings = (
+        Booking.objects
+        .filter(user=request.user)
+        .select_related('trip__route', 'trip__bus')
+        .prefetch_related('payment_set')
+        .order_by('-created_at')
+    )
+
+    return Response([
+        {
+            'id': booking.id,
+            'reference': booking.reference,
+            'passenger_name': booking.passenger_name,
+            'phone_number': booking.phone_number,
+            'route': str(booking.trip.route),
+            'origin': booking.trip.route.origin,
+            'destination': booking.trip.route.destination,
+            'vehicle': booking.trip.bus.plate_number,
+            'trip_date': booking.trip.date,
+            'departure_time': booking.trip.departure_time,
+            'arrival_time': booking.trip.arrival_time,
+            'seat_number': booking.seat_number,
+            'fare': booking.trip.fare,
+            'status': booking.status,
+            'payment_status': booking.payment_set.first().status if booking.payment_set.exists() else None,
+            'mpesa_receipt': booking.payment_set.first().mpesa_receipt if booking.payment_set.exists() else None,
+            'created_at': booking.created_at,
+            'qr_code': request.build_absolute_uri(booking.qr_code.url) if booking.qr_code else None,
+        }
+        for booking in bookings
+    ])
 
 
 @api_view(['GET'])
@@ -328,7 +482,7 @@ def admin_portal_data(request):
                 'arrival_time': trip.arrival_time,
                 'fare': trip.fare,
                 'capacity': trip.bus.capacity,
-                'booked_seats': trip.bookings.filter(status__in=['pending_payment', 'confirmed']).count(),
+                'booked_seats': trip.bookings.filter(status='confirmed').count(),
                 'confirmed_seats': trip.bookings.filter(status='confirmed').count(),
             }
             for trip in trips
@@ -481,12 +635,50 @@ def admin_booking_action(request, booking_id):
     action = request.data.get('action')
     if action == 'cancel':
         booking.status = 'cancelled'
+        booking.save()
+        return Response({'message': 'Booking updated', 'status': booking.status})
     elif action == 'confirm':
-        booking.status = 'confirmed'
+        receipt = (
+            request.data.get('receipt')
+            or request.data.get('mpesa_receipt')
+            or request.data.get('transaction_id')
+            or ''
+        )
+        payment_query = Payment.objects.filter(booking=booking)
+        if booking.payment_group:
+            payment_query = Payment.objects.filter(booking__payment_group=booking.payment_group)
+        payment = payment_query.order_by('-created_at').first()
+        if not payment:
+            booking.status = 'confirmed'
+            booking.save()
+            return Response({
+                'message': 'Booking updated. No payment record was found, so no confirmation SMS was sent.',
+                'status': booking.status,
+                'sms_sent': False,
+            })
+
+        if payment.checkout_request_id.startswith('SMS-') and not (receipt or payment.mpesa_receipt):
+            return Response({
+                'error': 'mpesa_receipt is required when manually confirming an M-Pesa SMS booking.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        result = confirm_payment_and_send_sms(payment=payment, receipt=receipt)
+        if result.get('conflicts'):
+            return Response({
+                'error': f"Seat already taken: {', '.join(result['conflicts'])}",
+                'status': 'payment_failed',
+            }, status=status.HTTP_409_CONFLICT)
+
+        return Response({
+            'message': 'Booking confirmed',
+            'status': 'confirmed',
+            'payment_status': 'SUCCESS',
+            'mpesa_receipt': result.get('receipt'),
+            'sms_sent': result.get('sms_sent', False),
+            'sms_duplicate_skipped': result.get('duplicate', False),
+        })
     else:
         return Response({'error': 'Unsupported action'}, status=status.HTTP_400_BAD_REQUEST)
-    booking.save()
-    return Response({'message': 'Booking updated', 'status': booking.status})
 
 
 @api_view(['GET'])
@@ -522,6 +714,7 @@ def payment_status_check(request):
             'qr_code': qr_codes[0] if qr_codes else None,
             'qr_codes': qr_codes,
             'mpesa_receipt': payment.mpesa_receipt,
+            'ticket_download_url': request.build_absolute_uri(f'/api/bookings/{booking.id}/ticket/') if booking.status == 'confirmed' else None,
         }, status=status.HTTP_200_OK)
     
     except Payment.DoesNotExist:

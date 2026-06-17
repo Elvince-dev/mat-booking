@@ -1,113 +1,155 @@
-from django.shortcuts import render, get_object_or_404
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
 import json
 
-from bookings.models import Booking
-from .models import Payment
-from payments.sms import send_sms
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 
-import qrcode
-from io import BytesIO
-from django.core.files import File
+from bookings.models import Booking
+from payments.services import confirm_payment_and_send_sms
+from .models import Payment
+
+
+def _mpesa_success_response():
+    return JsonResponse({
+        "ResultCode": 0,
+        "ResultDesc": "Accepted",
+    })
+
+
+def _mpesa_reject_response(message):
+    return JsonResponse({
+        "ResultCode": 1,
+        "ResultDesc": message,
+    })
+
+
+def _get_payload(request):
+    if request.body:
+        return json.loads(request.body)
+    return request.POST.dict()
+
+
+def _extract_stk_receipt(stk):
+    for item in stk.get("CallbackMetadata", {}).get("Item", []):
+        if item.get("Name") == "MpesaReceiptNumber":
+            return item.get("Value") or ""
+    return ""
+
+
+def _find_sms_payment_by_account(account_number):
+    account_number = str(account_number or "").strip()
+    if not account_number:
+        return None
+
+    payment = Payment.objects.filter(
+        merchant_request_id__iexact=account_number,
+        checkout_request_id__startswith="SMS-",
+    ).order_by("-created_at").first()
+    if payment:
+        return payment
+
+    reference = account_number.rsplit("-", 1)[-1]
+    booking = Booking.objects.filter(reference__iexact=reference).first()
+    if not booking:
+        return None
+
+    group_query = Payment.objects.filter(checkout_request_id__startswith="SMS-")
+    if booking.payment_group:
+        return group_query.filter(booking__payment_group=booking.payment_group).order_by("-created_at").first()
+    return group_query.filter(booking=booking).order_by("-created_at").first()
+
 
 @csrf_exempt
 def mpesa_callback(request):
-    print("🔥 CALLBACK HIT")
-
-    data = json.loads(request.body)
-    print("CALLBACK DATA:", data)
+    print("MPESA STK CALLBACK HIT")
 
     try:
-        stk = data['Body']['stkCallback']
-        checkout_id = stk['CheckoutRequestID']
-        result_code = stk['ResultCode']
+        data = _get_payload(request)
+        print("STK CALLBACK DATA:", data)
 
-        payment = Payment.objects.get(
-            checkout_request_id=checkout_id
-        )
+        stk = data["Body"]["stkCallback"]
+        checkout_id = stk["CheckoutRequestID"]
+        result_code = stk["ResultCode"]
 
-        booking = payment.booking
+        payment = Payment.objects.get(checkout_request_id=checkout_id)
 
-        # ---------------------------
-        # SUCCESS PAYMENT
-        # ---------------------------
         if result_code == 0:
-
-            # extract M-Pesa receipt safely
-            receipt = ""
-            for item in stk.get("CallbackMetadata", {}).get("Item", []):
-                if item.get("Name") == "MpesaReceiptNumber":
-                    receipt = item.get("Value")
-                    break
-
-            # update payment
-            payment.status = "SUCCESS"
-            payment.mpesa_receipt = receipt
-            payment.save()
-
-            group_bookings = Booking.objects.filter(payment_group=booking.payment_group) if booking.payment_group else Booking.objects.filter(id=booking.id)
-            seats = []
-            references = []
-
-            for item_booking in group_bookings:
-                item_booking.status = "confirmed"
-
-                if not item_booking.reference:
-                    item_booking.reference = f"MTT-{item_booking.id:06d}"
-
-                item_booking.save()
-                seats.append(item_booking.seat_number)
-                references.append(item_booking.reference)
-
-                qr_data = f"{item_booking.reference} | {item_booking.trip.route.name} | Seat {item_booking.seat_number}"
-                qr_img = qrcode.make(qr_data)
-                buffer = BytesIO()
-                qr_img.save(buffer, format="PNG")
-                buffer.seek(0)
-                file_name = f"{item_booking.reference}.png"
-                item_booking.qr_code.save(file_name, File(buffer), save=True)
-
-
-            # SMS MESSAGE
-            message = (
-                f"Payment Successful!\n"
-                f"Route: {booking.trip.route.name}\n"
-                f"Seats: {', '.join(seats)}\n"
-                f"Reference: {', '.join(references)}\n"
-                f"Receipt: {receipt}"
+            result = confirm_payment_and_send_sms(
+                payment=payment,
+                receipt=_extract_stk_receipt(stk),
             )
 
-            try:
-                response = send_sms(payment.phone, message)
-                print("📩 SMS RESPONSE:", response)
-            except Exception as e:
-                print("❌ SMS FAILED:", str(e))
+            if result.get("conflicts"):
+                print("PAYMENT RECEIVED BUT SEAT ALREADY CONFIRMED:", result["conflicts"])
+            elif result["duplicate"]:
+                print("BOOKING CONFIRMATION SMS SKIPPED: duplicate successful callback")
+            elif result["sms_sent"]:
+                print("BOOKING CONFIRMATION SMS SENT:", result.get("sms_response"))
+            else:
+                print("BOOKING CONFIRMATION SMS NOT SENT:", result.get("sms_response"))
 
-            
+            print("PAYMENT SUCCESS")
 
-            print("💰 PAYMENT SUCCESS")
-
-        # ---------------------------
-        # FAILED PAYMENT
-        # ---------------------------
-        
         else:
             payment.status = "FAILED"
             payment.save()
 
             booking = payment.booking
-            group_bookings = Booking.objects.filter(payment_group=booking.payment_group) if booking.payment_group else Booking.objects.filter(id=booking.id)
+            group_bookings = (
+                Booking.objects.filter(payment_group=booking.payment_group)
+                if booking.payment_group
+                else Booking.objects.filter(id=booking.id)
+            )
             group_bookings.update(status="payment_failed")
 
-            print(f"❌ PAYMENT FAILED: {stk.get('ResultDesc')}")
+            print(f"PAYMENT FAILED: {stk.get('ResultDesc')}")
 
-            
+    except Exception as exc:
+        print("STK CALLBACK ERROR:", str(exc))
 
-    except Exception as e:
-        print("ERROR:", str(e))
+    return _mpesa_success_response()
 
-    return JsonResponse({
-        "ResultCode": 0,
-        "ResultDesc": "Accepted"
-    })
+
+@csrf_exempt
+def c2b_validation(request):
+    try:
+        data = _get_payload(request)
+        print("C2B VALIDATION DATA:", data)
+        account_number = data.get("BillRefNumber") or data.get("bill_ref_number")
+        payment = _find_sms_payment_by_account(account_number)
+        if not payment:
+            return _mpesa_reject_response("No pending booking matches this account number.")
+    except Exception as exc:
+        print("C2B VALIDATION ERROR:", str(exc))
+        return _mpesa_reject_response("Could not validate payment.")
+
+    return _mpesa_success_response()
+
+
+@csrf_exempt
+def c2b_confirmation(request):
+    try:
+        data = _get_payload(request)
+        print("C2B CONFIRMATION DATA:", data)
+
+        account_number = data.get("BillRefNumber") or data.get("bill_ref_number")
+        receipt = data.get("TransID") or data.get("trans_id") or ""
+        payment = _find_sms_payment_by_account(account_number)
+        if not payment:
+            print("C2B CONFIRMATION PAYMENT NOT FOUND:", account_number)
+            return _mpesa_success_response()
+
+        result = confirm_payment_and_send_sms(payment=payment, receipt=receipt)
+
+        if result.get("conflicts"):
+            print("C2B PAYMENT RECEIVED BUT SEAT ALREADY CONFIRMED:", result["conflicts"])
+        elif result["duplicate"]:
+            print("C2B SMS SKIPPED: duplicate successful confirmation")
+        elif result["sms_sent"]:
+            print("C2B BOOKING CONFIRMATION SMS SENT:", result.get("sms_response"))
+        else:
+            print("C2B BOOKING CONFIRMATION SMS NOT SENT:", result.get("sms_response"))
+
+    except Exception as exc:
+        print("C2B CONFIRMATION ERROR:", str(exc))
+
+    return _mpesa_success_response()

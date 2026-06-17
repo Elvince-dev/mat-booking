@@ -23,6 +23,17 @@ PASSKEY = env("PASSKEY")
 CONSUMER_SECRET = env("CONSUMER_SECRET")
 
 MPESA_CALLBACK_URL = env("MPESA_CALLBACK_URL", default="https://your-domain.com/payments/callback/")
+FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:5173")
+MPESA_PAYBILL_NUMBER = env("MPESA_PAYBILL_NUMBER", default="123456")
+MPESA_ACCOUNT_PREFIX = env("MPESA_ACCOUNT_PREFIX", default="NJORO")
+SMS_BACKEND = env("SMS_BACKEND", default="africastalking")
+SMS_TIMEOUT = env.int("SMS_TIMEOUT", default=15)
+AFRICASTALKING_USERNAME = env("AFRICASTALKING_USERNAME", default="sandbox")
+AFRICASTALKING_API_KEY = env("AFRICASTALKING_API_KEY", default="")
+HOSTPINNACLE_SMS_URL = env("HOSTPINNACLE_SMS_URL", default="https://sms.hostpinnacle.co.ke/SMSApi/send")
+HOSTPINNACLE_USERNAME = env("HOSTPINNACLE_USERNAME", default="")
+HOSTPINNACLE_API_KEY = env("HOSTPINNACLE_API_KEY", default="")
+HOSTPINNACLE_SENDER_ID = env("HOSTPINNACLE_SENDER_ID", default="HostPinnacle")
 
 # print("CONSUMER_KEY from env:", env("CONSUMER_KEY", default="NOT SET"))
 
@@ -146,6 +157,21 @@ LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/dashboard/"
 LOGOUT_REDIRECT_URL = "/login/"
 
+EMAIL_HOST = env("EMAIL_HOST", default="")
+EMAIL_BACKEND = env(
+    "EMAIL_BACKEND",
+    default="django.core.mail.backends.smtp.EmailBackend" if EMAIL_HOST else "django.core.mail.backends.console.EmailBackend",
+)
+EMAIL_PORT = env.int("EMAIL_PORT", default=587)
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
+EMAIL_USE_SSL = env.bool("EMAIL_USE_SSL", default=False)
+EMAIL_TIMEOUT = env.int("EMAIL_TIMEOUT", default=15)
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default=EMAIL_HOST_USER or "no-reply@njoroline.local")
+SITE_OWNER_EMAIL = env("SITE_OWNER_EMAIL", default="elvincefidel@gmail.com")
+SECURITY_ALERT_EMAILS = env.list("SECURITY_ALERT_EMAILS", default=[SITE_OWNER_EMAIL] if SITE_OWNER_EMAIL else [])
+
 # DRF settings (optional but good)
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -155,3 +181,5 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.AllowAny',  # change later for admin endpoints
     ],
 }
+
+PASSWORD_RESET_TIMEOUT = 900 # 15 minutes

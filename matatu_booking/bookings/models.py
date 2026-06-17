@@ -1,5 +1,6 @@
 # bookings/models.py
 from django.db import models
+from django.conf import settings
 import uuid
 
 class Route(models.Model):
@@ -77,6 +78,7 @@ class Booking(models.Model):
         ('cancelled', 'Cancelled'),
     ]
     trip = models.ForeignKey(Trip, on_delete=models.CASCADE, related_name='bookings')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, related_name='bookings', blank=True, null=True)
     passenger_name = models.CharField(max_length=100)
     phone_number = models.CharField(max_length=15)
     seat_number = models.CharField(max_length=10)   # now string, e.g., "3A"

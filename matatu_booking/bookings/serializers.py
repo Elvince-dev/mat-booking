@@ -25,7 +25,7 @@ class TripSerializer(serializers.ModelSerializer):
         fields = ['id', 'route', 'bus', 'departure_time', 'arrival_time', 'fare', 'date', 'available_seats']
 
     def get_available_seats(self, obj):
-        booked_seats = Booking.objects.filter(trip=obj, status__in=['pending_payment', 'confirmed']).values_list('seat_number', flat=True)
+        booked_seats = Booking.objects.filter(trip=obj, status='confirmed').values_list('seat_number', flat=True)
         all_seats = obj.get_seat_layout()
         available = [seat for seat in all_seats if seat not in booked_seats]
         return {
@@ -67,10 +67,11 @@ class BookingDetailSerializer(serializers.ModelSerializer):
     trip = TripSerializer(read_only=True)
     payment_status = serializers.SerializerMethodField()
     mpesa_receipt = serializers.SerializerMethodField()
+    ticket_download_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
-        fields = ['id', 'reference', 'passenger_name', 'phone_number', 'seat_number', 'status', 'created_at', 'trip', 'payment_status', 'mpesa_receipt', 'qr_code']
+        fields = ['id', 'reference', 'passenger_name', 'phone_number', 'seat_number', 'status', 'created_at', 'trip', 'payment_status', 'mpesa_receipt', 'qr_code', 'ticket_download_url']
 
     def get_payment_status(self, obj):
         try:
@@ -85,3 +86,9 @@ class BookingDetailSerializer(serializers.ModelSerializer):
             return payment.mpesa_receipt
         except Payment.DoesNotExist:
             return None
+
+    def get_ticket_download_url(self, obj):
+        request = self.context.get('request')
+        if not request or obj.status != 'confirmed':
+            return None
+        return request.build_absolute_uri(f'/api/bookings/{obj.id}/ticket/')
