@@ -1,4 +1,4 @@
-// frontend/src/services/api.ts
+﻿// frontend/src/services/api.ts
 
 const API_BASE = ''; // empty because Vite proxy handles /api
 
@@ -7,7 +7,6 @@ interface ApiResponse<T> {
   error?: string;
 }
 
-<<<<<<< HEAD
 function formatApiError(errorData: unknown, fallback: string) {
   if (!errorData || typeof errorData !== 'object') return fallback;
 
@@ -38,8 +37,6 @@ function formatApiError(errorData: unknown, fallback: string) {
   return fieldErrors || fallback;
 }
 
-=======
->>>>>>> e7d15adab916977681cad1d43ad818a29ec9dfeb
 async function request<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -51,17 +48,10 @@ async function request<T>(
   };
 
   try {
-<<<<<<< HEAD
     const response = await fetch(url, { ...options, headers, credentials: 'include' });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       return { error: formatApiError(errorData, `HTTP ${response.status}`) };
-=======
-    const response = await fetch(url, { ...options, headers });
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      return { error: errorData.error || `HTTP ${response.status}` };
->>>>>>> e7d15adab916977681cad1d43ad818a29ec9dfeb
     }
     const data = await response.json();
     return { data };
@@ -126,23 +116,21 @@ export interface CreateBookingPayload {
   trip: number;
   passenger_name: string;
   phone_number: string;
-<<<<<<< HEAD
   seat_number?: string;
   seat_numbers?: string[];
-=======
-  seat_number: string;
->>>>>>> e7d15adab916977681cad1d43ad818a29ec9dfeb
+  payment_method?: 'mpesa_direct' | 'mpesa_sms';
 }
 
 export interface CreateBookingResponse {
   booking_id: number;
-<<<<<<< HEAD
   booking_ids?: number[];
   seat_numbers?: string[];
   total_amount?: number;
-=======
->>>>>>> e7d15adab916977681cad1d43ad818a29ec9dfeb
-  checkout_request_id: string;
+  checkout_request_id: string | null;
+  payment_method?: 'mpesa_direct' | 'mpesa_sms';
+  paybill?: string;
+  account_number?: string;
+  sms_sent?: boolean;
   message: string;
 }
 
@@ -160,24 +148,44 @@ export interface BookingStatus {
   passenger_name: string;
   phone_number: string;
   seat_number: string;
-<<<<<<< HEAD
   seat_numbers?: string[];
-=======
->>>>>>> e7d15adab916977681cad1d43ad818a29ec9dfeb
   status: 'pending_payment' | 'confirmed' | 'payment_failed' | 'cancelled';
   created_at: string;
   trip: Trip;
   payment_status: 'PENDING' | 'SUCCESS' | 'FAILED' | null;
   mpesa_receipt: string | null;
   qr_code: string | null;
-<<<<<<< HEAD
   qr_codes?: string[];
-=======
->>>>>>> e7d15adab916977681cad1d43ad818a29ec9dfeb
+  ticket_download_url?: string | null;
 }
 
 export async function getBookingStatus(bookingId: number): Promise<ApiResponse<BookingStatus>> {
   return request<BookingStatus>(`/api/bookings/${bookingId}/status/`);
+}
+
+export interface UserBooking {
+  id: number;
+  reference: string | null;
+  passenger_name: string;
+  phone_number: string;
+  route: string;
+  origin: string;
+  destination: string;
+  vehicle: string;
+  trip_date: string;
+  departure_time: string;
+  arrival_time: string;
+  seat_number: string;
+  fare: number;
+  status: 'pending_payment' | 'confirmed' | 'payment_failed' | 'cancelled';
+  payment_status: 'PENDING' | 'SUCCESS' | 'FAILED' | null;
+  mpesa_receipt: string | null;
+  created_at: string;
+  qr_code: string | null;
+}
+
+export async function getUserBookings(): Promise<ApiResponse<UserBooking[]>> {
+  return request<UserBooking[]>('/api/user/bookings/');
 }
 
 // GET /api/admin/stats/ (requires authentication)
@@ -192,25 +200,18 @@ export interface AdminStats {
     id: number;
     reference: string;
     passenger_name: string;
-<<<<<<< HEAD
     phone_number: string;
     route: string;
     seat_number: string;
     fare: number;
     status: string;
     payment_status: 'PENDING' | 'SUCCESS' | 'FAILED' | null;
-=======
-    route: string;
-    seat_number: string;
-    status: string;
->>>>>>> e7d15adab916977681cad1d43ad818a29ec9dfeb
     created_at: string;
   }[];
 }
 
 export async function getAdminStats(): Promise<ApiResponse<AdminStats>> {
   return request<AdminStats>('/api/admin/stats/');
-<<<<<<< HEAD
 }
 
 export interface AdminPortalData {
@@ -363,6 +364,7 @@ export interface PaymentStatusResponse {
   qr_code: string | null;
   qr_codes?: string[];
   mpesa_receipt: string | null;
+  ticket_download_url?: string | null;
 }
 
 export async function getPaymentStatus(checkoutRequestId: string): Promise<ApiResponse<PaymentStatusResponse>> {
@@ -409,6 +411,27 @@ export async function logoutUser(): Promise<ApiResponse<{ message: string }>> {
 export async function getProfile(): Promise<ApiResponse<UserProfile>> {
   return request<UserProfile>('/api/auth/profile/');
 }
-=======
+
+export async function requestPasswordReset(email: string): Promise<ApiResponse<{ message: string }>> {
+  return request<{ message: string }>('/api/auth/password-reset/', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
 }
->>>>>>> e7d15adab916977681cad1d43ad818a29ec9dfeb
+
+export async function confirmPasswordReset(
+  uid: string,
+  token: string,
+  password: string,
+  passwordConfirm: string
+): Promise<ApiResponse<{ message: string }>> {
+  return request<{ message: string }>('/api/auth/password-reset/confirm/', {
+    method: 'POST',
+    body: JSON.stringify({
+      uid,
+      token,
+      password,
+      password_confirm: passwordConfirm,
+    }),
+  });
+}

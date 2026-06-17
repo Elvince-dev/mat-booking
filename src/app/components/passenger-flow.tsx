@@ -1,20 +1,24 @@
-// frontend/src/components/passenger-flow.tsx
+﻿// frontend/src/components/passenger-flow.tsx
 import { useState, useEffect } from "react";
 import {
   Bus, MapPin, ChevronLeft, ChevronRight, Clock, Star,
-<<<<<<< HEAD
   User, Phone, CheckCircle, Smartphone,
   Download, Ticket, Home, Search, Loader2, Plus, Minus,
   Shield, ArrowRight, Bell, X,
 } from "lucide-react";
-import { getRoutes, getSeatMap, createBooking, getBookingStatus, getPaymentStatus, type Route, type Trip, type SeatMap, type BookingStatus } from "../../services/api";
-=======
-  User, Phone, Book, CheckCircle, Smartphone,
-  Download, Ticket, Home, Search, Loader2, Plus, Minus,
-  Shield, ArrowRight, Bell, X,
-} from "lucide-react";
-import { getRoutes, getSeatMap, createBooking, getBookingStatus, type Route, type Trip, type SeatMap, type BookingStatus } from "../../services/api";
->>>>>>> e7d15adab916977681cad1d43ad818a29ec9dfeb
+import {
+  getRoutes,
+  getSeatMap,
+  createBooking,
+  getBookingStatus,
+  getPaymentStatus,
+  getUserBookings,
+  type Route,
+  type Trip,
+  type SeatMap,
+  type BookingStatus,
+  type UserBooking,
+} from "../../services/api";
 
 export type PassengerScreen =
   | "search" | "seats" | "passenger" | "payment" | "pending" | "success" | "bookings" | "payment_failed";
@@ -24,27 +28,20 @@ interface BookingData {
   tripId: string | null;
   tripDetails: Trip | null;
   selectedSeats: string[];
-<<<<<<< HEAD
   name: string; phone: string;
   paymentMethod: "mpesa_direct" | "mpesa_sms";
   ref: string;
   bookingId: number | null;
   checkoutRequestId: string | null;
-=======
-  name: string; phone: string; idNumber: string; emergency: string;
-  paymentMethod: "mpesa_direct" | "mpesa_sms";
-  ref: string;
-  bookingId: number | null;
->>>>>>> e7d15adab916977681cad1d43ad818a29ec9dfeb
+  smsPaybill: string | null;
+  smsAccountNumber: string | null;
+  smsSent: boolean | null;
 }
 
 interface PassengerFlowProps {
   initialFrom?: string;
   initialTo?: string;
-<<<<<<< HEAD
   initialDate?: string;
-=======
->>>>>>> e7d15adab916977681cad1d43ad818a29ec9dfeb
   initialScreen?: PassengerScreen;
   onBack: () => void;
 }
@@ -52,16 +49,23 @@ interface PassengerFlowProps {
 const DEFAULT_BOOKING: BookingData = {
   from: "Nakuru", to: "Kisumu", date: new Date().toISOString().split("T")[0],
   tripId: null, tripDetails: null, selectedSeats: [],
-<<<<<<< HEAD
   name: "", phone: "",
   paymentMethod: "mpesa_direct", ref: "", bookingId: null, checkoutRequestId: null,
-=======
-  name: "", phone: "", idNumber: "", emergency: "",
-  paymentMethod: "mpesa_direct", ref: "", bookingId: null,
->>>>>>> e7d15adab916977681cad1d43ad818a29ec9dfeb
+  smsPaybill: null, smsAccountNumber: null, smsSent: null,
 };
 
-// Helper components (PhoneHeader, PhoneNav) – keep as is from original
+function formatTripTime(time?: string) {
+  if (!time) return "";
+  const [hourPart, minutePart = "00"] = time.split(":");
+  const hour = Number(hourPart);
+  if (!Number.isFinite(hour)) return time;
+
+  const suffix = hour >= 12 ? "PM" : "AM";
+  const displayHour = hour % 12 || 12;
+  return `${String(displayHour).padStart(2, "0")}:${minutePart.padStart(2, "0")} ${suffix}`;
+}
+
+// Helper components (PhoneHeader, PhoneNav) â€“ keep as is from original
 function PhoneHeader({ title, subtitle, onBack }: { title: string; subtitle?: string; onBack: () => void }) {
   return (
     <div className="bg-gradient-to-r from-[#0D2B5E] to-[#1565C0] px-4 pt-11 pb-4 flex items-center gap-3 flex-shrink-0">
@@ -101,7 +105,7 @@ function PhoneNav({ current, onChange }: { current: PassengerScreen; onChange: (
   );
 }
 
-// ─── Screen 1: Trip Search (Real API) ─────────────────────────────────────────
+// â”€â”€â”€ Screen 1: Trip Search (Real API) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function TripSearchScreen({ booking, updateBooking, onNavigate }: {
   booking: BookingData; updateBooking: (u: Partial<BookingData>) => void; onNavigate: (s: PassengerScreen) => void;
 }) {
@@ -122,7 +126,6 @@ function TripSearchScreen({ booking, updateBooking, onNavigate }: {
   }, [booking.date]);
 
   const allTrips: (Trip & { route: Route })[] = [];
-<<<<<<< HEAD
   // Be forgiving with whitespace/casing from user input and DB values.
   const fromFilter = (booking.from || "").toString().trim().toLowerCase();
   const toFilter = (booking.to || "").toString().trim().toLowerCase();
@@ -133,10 +136,6 @@ function TripSearchScreen({ booking, updateBooking, onNavigate }: {
 
     // If no from/to provided, or they match after normalization, include trips
     if (!fromFilter || !toFilter || (routeOrigin === fromFilter && routeDestination === toFilter)) {
-=======
-  routes.forEach(route => {
-    if (route.origin === booking.from && route.destination === booking.to) {
->>>>>>> e7d15adab916977681cad1d43ad818a29ec9dfeb
       route.trips.forEach(trip => {
         allTrips.push({ ...trip, route });
       });
@@ -210,7 +209,7 @@ function TripSearchScreen({ booking, updateBooking, onNavigate }: {
             <div className="p-4">
               <div className="flex items-center gap-2 mb-3">
                 <div>
-                  <p className="text-foreground font-extrabold text-2xl leading-none">{trip.departure_time.slice(0,5)}</p>
+                  <p className="text-foreground font-extrabold text-2xl leading-none">{formatTripTime(trip.departure_time)}</p>
                   <p className="text-muted-foreground text-xs mt-0.5">{trip.route.origin}</p>
                 </div>
                 <div className="flex-1 flex flex-col items-center gap-0.5 mx-1">
@@ -221,7 +220,7 @@ function TripSearchScreen({ booking, updateBooking, onNavigate }: {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-foreground font-extrabold text-2xl leading-none">{trip.arrival_time.slice(0,5)}</p>
+                  <p className="text-foreground font-extrabold text-2xl leading-none">{formatTripTime(trip.arrival_time)}</p>
                   <p className="text-muted-foreground text-xs mt-0.5">{trip.route.destination}</p>
                 </div>
               </div>
@@ -245,7 +244,7 @@ function TripSearchScreen({ booking, updateBooking, onNavigate }: {
   );
 }
 
-// ─── Screen 2: Seat Selection (Real API) ─────────────────────────────────────
+// â”€â”€â”€ Screen 2: Seat Selection (Real API) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function SeatScreen({ booking, updateBooking, onNavigate }: {
   booking: BookingData; updateBooking: (u: Partial<BookingData>) => void; onNavigate: (s: PassengerScreen) => void;
 }) {
@@ -312,7 +311,7 @@ function SeatScreen({ booking, updateBooking, onNavigate }: {
                   className={seatCls(seat.is_booked, isSelected)}
                   disabled={seat.is_booked}
                 >
-                  {isSelected ? "✓" : seat.label}
+                  {isSelected ? seat.label : seat.label}
                 </button>
               );
             })}
@@ -344,7 +343,7 @@ function SeatScreen({ booking, updateBooking, onNavigate }: {
   );
 }
 
-// ─── Screen 3: Passenger Info ─────────────────────────────────────────────────
+// â”€â”€â”€ Screen 3: Passenger Info â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function PassengerInfoScreen({ booking, updateBooking, onNavigate }: {
   booking: BookingData; updateBooking: (u: Partial<BookingData>) => void; onNavigate: (s: PassengerScreen) => void;
 }) {
@@ -365,7 +364,7 @@ function PassengerInfoScreen({ booking, updateBooking, onNavigate }: {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-foreground font-bold text-sm truncate">{booking.tripDetails?.route.name}</p>
-            <p className="text-muted-foreground text-xs">{booking.tripDetails?.departure_time.slice(0,5)} · Seats: {booking.selectedSeats.join(", ")}</p>
+            <p className="text-muted-foreground text-xs">{formatTripTime(booking.tripDetails?.departure_time)}  Seats: {booking.selectedSeats.join(", ")}</p>
           </div>
           <span className="text-primary font-extrabold text-sm">KES {total}</span>
         </div>
@@ -398,13 +397,14 @@ function PassengerInfoScreen({ booking, updateBooking, onNavigate }: {
   );
 }
 
-// ─── Screen 4: Payment (Real API) ────────────────────────────────────────────
+// â”€â”€â”€ Screen 4: Payment (Real API) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function PaymentScreen({ booking, updateBooking, onNavigate, setBookingId }: {
   booking: BookingData; updateBooking: (u: Partial<BookingData>) => void;
   onNavigate: (s: PassengerScreen) => void; setBookingId: (id: number) => void;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const fare = booking.tripDetails?.fare ?? 0;
   const subtotal = fare * booking.selectedSeats.length;
   const total = subtotal;
@@ -413,20 +413,13 @@ function PaymentScreen({ booking, updateBooking, onNavigate, setBookingId }: {
     if (!booking.tripId) return;
     setLoading(true);
     setError(null);
-<<<<<<< HEAD
-=======
-    // For simplicity, we book only the first selected seat.
-    // To support multiple seats, you would need to create separate bookings or extend backend.
->>>>>>> e7d15adab916977681cad1d43ad818a29ec9dfeb
+    setNotice(null);
     const payload = {
       trip: parseInt(booking.tripId),
       passenger_name: booking.name,
       phone_number: booking.phone,
-<<<<<<< HEAD
       seat_numbers: booking.selectedSeats,
-=======
-      seat_number: booking.selectedSeats[0],
->>>>>>> e7d15adab916977681cad1d43ad818a29ec9dfeb
+      payment_method: booking.paymentMethod,
     };
     const result = await createBooking(payload);
     if (result.error) {
@@ -434,15 +427,17 @@ function PaymentScreen({ booking, updateBooking, onNavigate, setBookingId }: {
       setLoading(false);
     } else if (result.data) {
       setBookingId(result.data.booking_id);
-<<<<<<< HEAD
       updateBooking({ 
         ref: `BK-${result.data.booking_id}`, 
         bookingId: result.data.booking_id,
-        checkoutRequestId: result.data.checkout_request_id
+        checkoutRequestId: result.data.checkout_request_id,
+        smsPaybill: result.data.paybill || null,
+        smsAccountNumber: result.data.account_number || null,
+        smsSent: typeof result.data.sms_sent === "boolean" ? result.data.sms_sent : null,
       });
-=======
-      updateBooking({ ref: `BK-${result.data.booking_id}`, bookingId: result.data.booking_id });
->>>>>>> e7d15adab916977681cad1d43ad818a29ec9dfeb
+      if (result.data.payment_method === "mpesa_sms") {
+        setNotice(`${result.data.sms_sent ? "SMS sent." : "SMS could not be sent."} Use PayBill ${result.data.paybill} and Account ${result.data.account_number}.`);
+      }
       onNavigate("pending");
     }
   };
@@ -459,13 +454,13 @@ function PaymentScreen({ booking, updateBooking, onNavigate, setBookingId }: {
             </div>
             <div>
               <p className="text-foreground font-bold text-sm">{booking.tripDetails?.route.name}</p>
-              <p className="text-muted-foreground text-xs">{booking.tripDetails?.bus.plate_number} · {booking.tripDetails?.departure_time.slice(0,5)}</p>
+              <p className="text-muted-foreground text-xs">{booking.tripDetails?.bus.plate_number} {formatTripTime(booking.tripDetails?.departure_time)}</p>
             </div>
           </div>
           {[
             ["Passenger", booking.name],
             ["Seat(s)", booking.selectedSeats.join(", ")],
-            [`${booking.selectedSeats.length}× Fare`, `KES ${subtotal.toLocaleString()}`],
+            [`${booking.selectedSeats.length}* Fare`, `KES ${subtotal.toLocaleString()}`],
           ].map(([k, v]) => (
             <div key={k} className="flex justify-between py-1">
               <span className="text-muted-foreground text-sm">{k}</span>
@@ -480,7 +475,11 @@ function PaymentScreen({ booking, updateBooking, onNavigate, setBookingId }: {
         <div>
           <p className="text-foreground font-extrabold text-sm mb-3">Payment Method</p>
           <div className="space-y-2.5">
-            <button className="w-full flex items-center gap-3 p-4 rounded-2xl border-2 border-primary bg-primary/5">
+            <button
+              type="button"
+              onClick={() => updateBooking({ paymentMethod: "mpesa_direct" })}
+              className={`w-full flex items-center gap-3 p-4 rounded-2xl border-2 ${booking.paymentMethod === "mpesa_direct" ? "border-primary bg-primary/5" : "border-border bg-card"}`}
+            >
               <div className="w-11 h-11 rounded-2xl bg-accent/15 flex items-center justify-center">
                 <Smartphone className="w-5 h-5 text-accent" />
               </div>
@@ -491,31 +490,47 @@ function PaymentScreen({ booking, updateBooking, onNavigate, setBookingId }: {
                 </div>
                 <p className="text-muted-foreground text-xs">Prompt sent to your phone via STK Push.</p>
               </div>
-              <div className="w-5 h-5 rounded-full border-2 border-primary bg-primary flex items-center justify-center">
-                <div className="w-2 h-2 bg-white rounded-full" />
+              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${booking.paymentMethod === "mpesa_direct" ? "border-primary bg-primary" : "border-border"}`}>
+                {booking.paymentMethod === "mpesa_direct" && <div className="w-2 h-2 bg-white rounded-full" />}
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => updateBooking({ paymentMethod: "mpesa_sms" })}
+              className={`w-full flex items-center gap-3 p-4 rounded-2xl border-2 ${booking.paymentMethod === "mpesa_sms" ? "border-primary bg-primary/5" : "border-border bg-card"}`}
+            >
+              <div className="w-11 h-11 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <Phone className="w-5 h-5 text-primary" />
+              </div>
+              <div className="flex-1 text-left">
+                <div className="flex items-center gap-2">
+                  <p className="text-foreground font-bold text-sm">M-Pesa SMS</p>
+                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full text-primary bg-primary/10 border border-primary/25">Instructions</span>
+                </div>
+                <p className="text-muted-foreground text-xs">Receive PayBill and account instructions by SMS.</p>
+              </div>
+              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${booking.paymentMethod === "mpesa_sms" ? "border-primary bg-primary" : "border-border"}`}>
+                {booking.paymentMethod === "mpesa_sms" && <div className="w-2 h-2 bg-white rounded-full" />}
               </div>
             </button>
           </div>
         </div>
+        {notice && <div className="bg-primary/10 text-primary p-3 rounded-xl text-sm">{notice}</div>}
         {error && <div className="bg-red-50 text-red-600 p-3 rounded-xl text-sm">{error}</div>}
       </div>
       <div className="absolute bottom-0 left-0 right-0 bg-card border-t border-border px-4 py-4">
         <button onClick={handlePay} disabled={loading}
           className="w-full font-extrabold py-4 rounded-2xl text-sm text-white shadow-lg active:scale-[0.98] transition-all"
           style={{ backgroundColor: "#00C853", boxShadow: "0 8px 24px rgba(0,200,83,0.3)" }}>
-          {loading ? "Processing..." : `Pay KES ${total.toLocaleString()} Now`}
+          {loading ? "Processing..." : booking.paymentMethod === "mpesa_sms" ? "Send Payment Instructions" : `Pay KES ${total.toLocaleString()} Now`}
         </button>
       </div>
     </div>
   );
 }
 
-// ─── Polling Hook (for payment status)
-<<<<<<< HEAD
+// â”€â”€â”€ Polling Hook (for payment status)
 function usePollPaymentStatus(bookingId: number | null, checkoutRequestId: string | null, onComplete: (status: BookingStatus) => void) {
-=======
-function usePollPaymentStatus(bookingId: number | null, onComplete: (status: BookingStatus) => void) {
->>>>>>> e7d15adab916977681cad1d43ad818a29ec9dfeb
   const [status, setStatus] = useState<BookingStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPolling, setIsPolling] = useState(false);
@@ -524,7 +539,6 @@ function usePollPaymentStatus(bookingId: number | null, onComplete: (status: Boo
     if (!bookingId) return;
     let interval: NodeJS.Timeout;
     const poll = async () => {
-<<<<<<< HEAD
       // Try to poll by checkout_request_id first (more direct), fall back to booking_id
       if (checkoutRequestId) {
         const result = await getPaymentStatus(checkoutRequestId);
@@ -544,6 +558,7 @@ function usePollPaymentStatus(bookingId: number | null, onComplete: (status: Boo
             mpesa_receipt: result.data.mpesa_receipt,
             qr_code: result.data.qr_code,
             qr_codes: result.data.qr_codes,
+            ticket_download_url: result.data.ticket_download_url,
           };
           setStatus(bookingStatus);
           if (result.data.booking_status === "confirmed" || result.data.booking_status === "payment_failed") {
@@ -572,21 +587,6 @@ function usePollPaymentStatus(bookingId: number | null, onComplete: (status: Boo
             clearInterval(interval);
             onComplete(result.data);
           }
-=======
-      const result = await getBookingStatus(bookingId);
-      if (result.error) {
-        setError(result.error);
-        setIsPolling(false);
-        clearInterval(interval);
-        return;
-      }
-      if (result.data) {
-        setStatus(result.data);
-        if (result.data.status === "confirmed" || result.data.status === "payment_failed") {
-          setIsPolling(false);
-          clearInterval(interval);
-          onComplete(result.data);
->>>>>>> e7d15adab916977681cad1d43ad818a29ec9dfeb
         }
       }
     };
@@ -594,49 +594,69 @@ function usePollPaymentStatus(bookingId: number | null, onComplete: (status: Boo
     poll();
     interval = setInterval(poll, 3000);
     return () => clearInterval(interval);
-<<<<<<< HEAD
   }, [bookingId, checkoutRequestId, onComplete]);
-=======
-  }, [bookingId, onComplete]);
->>>>>>> e7d15adab916977681cad1d43ad818a29ec9dfeb
 
   return { status, error, isPolling };
 }
 
-// ─── Screen 5: Pending (Polling) ─────────────────────────────────────────────
-<<<<<<< HEAD
-function PendingScreen({ bookingId, checkoutRequestId, onNavigate }: { bookingId: number; checkoutRequestId: string | null; onNavigate: (s: PassengerScreen, booking?: BookingStatus) => void }) {
+// â”€â”€â”€ Screen 5: Pending (Polling) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function PendingScreen({ booking, bookingId, checkoutRequestId, onNavigate }: { booking: BookingData; bookingId: number; checkoutRequestId: string | null; onNavigate: (s: PassengerScreen, booking?: BookingStatus) => void }) {
   const { error, isPolling } = usePollPaymentStatus(bookingId, checkoutRequestId, (finalStatus) => {
-=======
-function PendingScreen({ bookingId, onNavigate }: { bookingId: number; onNavigate: (s: PassengerScreen, booking?: BookingStatus) => void }) {
-  const { error, isPolling } = usePollPaymentStatus(bookingId, (finalStatus) => {
->>>>>>> e7d15adab916977681cad1d43ad818a29ec9dfeb
     if (finalStatus.status === "confirmed") onNavigate("success", finalStatus);
     else onNavigate("payment_failed");
   });
+  const isSmsPayment = !checkoutRequestId;
 
   return (
     <div className="flex flex-col h-full items-center justify-center p-6 text-center">
       <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
-      <h2 className="text-foreground font-extrabold text-xl">Waiting for Payment</h2>
-      <p className="text-muted-foreground mt-2">Complete the M-Pesa prompt on your phone.</p>
-      <p className="text-muted-foreground text-sm mt-1">This page will refresh automatically once payment is confirmed.</p>
+      <h2 className="text-foreground font-extrabold text-xl">{isSmsPayment ? "Payment Instructions Sent" : "Waiting for Payment"}</h2>
+      <p className="text-muted-foreground mt-2">
+        {isSmsPayment ? "Check your SMS for the PayBill, account number, and amount." : "Complete the M-Pesa prompt on your phone."}
+      </p>
+      {isSmsPayment && booking.smsPaybill && booking.smsAccountNumber && (
+        <div className="mt-5 w-full rounded-2xl border border-primary/20 bg-primary/10 p-4 text-left">
+          <p className="text-xs font-bold uppercase tracking-widest text-primary">{booking.smsSent ? "SMS sent" : "Use these details"}</p>
+          <div className="mt-3 space-y-2 text-sm">
+            <div className="flex justify-between gap-3">
+              <span className="text-muted-foreground">PayBill</span>
+              <span className="font-extrabold text-foreground">{booking.smsPaybill}</span>
+            </div>
+            <div className="flex justify-between gap-3">
+              <span className="text-muted-foreground">Account</span>
+              <span className="font-extrabold text-foreground">{booking.smsAccountNumber}</span>
+            </div>
+          </div>
+        </div>
+      )}
+      <p className="text-muted-foreground text-sm mt-1">
+        {isSmsPayment ? "Your booking is pending until payment is confirmed by staff." : "This page will refresh automatically once payment is confirmed."}
+      </p>
       {error && <p className="text-red-500 mt-4">Error: {error}</p>}
     </div>
   );
 }
 
-// ─── Screen 6: Success ───────────────────────────────────────────────────────
+// â”€â”€â”€ Screen 6: Success â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function SuccessScreen({ booking, finalBooking, onNavigate }: {
   booking: BookingData; finalBooking?: BookingStatus; onNavigate: (s: PassengerScreen) => void;
 }) {
   const fare = booking.tripDetails?.fare ?? 0;
-  const total = fare * booking.selectedSeats.length;
-  const displayBooking = finalBooking || booking;
-<<<<<<< HEAD
+  const displaySeats = finalBooking?.seat_numbers?.length
+    ? finalBooking.seat_numbers
+    : booking.selectedSeats;
+  const total = fare * displaySeats.length;
+  const bookingReference = finalBooking?.reference || booking.ref;
   const qrCodeUrl = finalBooking?.qr_code;
-=======
->>>>>>> e7d15adab916977681cad1d43ad818a29ec9dfeb
+  const ticketDownloadUrl = finalBooking?.ticket_download_url || (finalBooking?.id ? `/api/bookings/${finalBooking.id}/ticket/` : null);
+  const ticketDetails: [string, string][] = [
+    ["Passenger", booking.name],
+    ["Vehicle", booking.tripDetails?.bus.plate_number ?? ""],
+    ["Seat(s)", displaySeats.join(", ")],
+    ["Total Paid", `KES ${total.toLocaleString()}`],
+    ["Booking Ref", bookingReference],
+    ["Status", "Confirmed"],
+  ];
 
   return (
     <div className="flex flex-col h-full bg-background">
@@ -653,14 +673,14 @@ function SuccessScreen({ booking, finalBooking, onNavigate }: {
           <div className="px-5 pt-5 pb-4 border-b-2 border-dashed border-border">
             <div className="flex justify-between items-start mb-3">
               <div>
-                <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest">NJOROLINE · E-TICKET</p>
+                <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest">NJOROLINE  E-TICKET</p>
                 <p className="text-foreground font-extrabold text-base">{booking.tripDetails?.bus.vehicle_type}</p>
               </div>
               <span className="text-[10px] font-extrabold px-3 py-1.5 rounded-full text-accent bg-accent/10 border border-accent/20">CONFIRMED</span>
             </div>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-foreground font-extrabold text-2xl leading-none">{booking.tripDetails?.departure_time.slice(0,5)}</p>
+                <p className="text-foreground font-extrabold text-2xl leading-none">{formatTripTime(booking.tripDetails?.departure_time)}</p>
                 <p className="text-muted-foreground text-sm">{booking.tripDetails?.route.origin}</p>
               </div>
               <div className="flex flex-col items-center gap-0.5">
@@ -669,14 +689,14 @@ function SuccessScreen({ booking, finalBooking, onNavigate }: {
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-foreground font-extrabold text-2xl leading-none">{booking.tripDetails?.arrival_time.slice(0,5)}</p>
+                <p className="text-foreground font-extrabold text-2xl leading-none">{formatTripTime(booking.tripDetails?.arrival_time)}</p>
                 <p className="text-muted-foreground text-sm">{booking.tripDetails?.route.destination}</p>
               </div>
             </div>
           </div>
           <div className="px-5 py-4">
             <div className="grid grid-cols-2 gap-3 mb-4">
-              {[["Passenger", booking.name], ["Vehicle", booking.tripDetails?.bus.plate_number ?? ""], ["Seat(s)", booking.selectedSeats.join(", ")], ["Total Paid", `KES ${total.toLocaleString()}`], ["Booking Ref", displayBooking.reference || booking.ref], ["Status", "Confirmed"]].map(([k, v]) => (
+              {ticketDetails.map(([k, v]) => (
                 <div key={k}>
                   <p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-wide">{k}</p>
                   <p className="text-foreground font-bold text-sm mt-0.5 truncate">{v}</p>
@@ -684,28 +704,30 @@ function SuccessScreen({ booking, finalBooking, onNavigate }: {
               ))}
             </div>
             <div className="flex flex-col items-center py-4 bg-muted rounded-2xl">
-<<<<<<< HEAD
               <div className="w-28 h-28 bg-white rounded-md flex items-center justify-center overflow-hidden border border-border">
                 {qrCodeUrl ? (
                   <img src={qrCodeUrl} alt="Ticket QR code" className="w-full h-full object-contain" />
                 ) : (
                   <span className="text-xs text-muted-foreground text-center px-2">QR preparing</span>
                 )}
-=======
-              <div className="w-28 h-28 bg-gray-200 rounded-md flex items-center justify-center">
-                {/* QR code would be loaded from backend – for now placeholder */}
-                <span className="text-xs text-muted-foreground">QR Code</span>
->>>>>>> e7d15adab916977681cad1d43ad818a29ec9dfeb
               </div>
               <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mt-2">Scan at Boarding</p>
-              <p className="text-foreground font-bold text-sm mt-0.5">{displayBooking.reference || booking.ref}</p>
+              <p className="text-foreground font-bold text-sm mt-0.5">{bookingReference}</p>
             </div>
           </div>
         </div>
-        <button className="w-full flex items-center justify-center gap-2 bg-card border-2 border-border text-foreground font-bold py-4 rounded-2xl text-sm mb-3 active:scale-[0.98] transition-transform">
+        <a
+          href={ticketDownloadUrl || undefined}
+          download
+          aria-disabled={!ticketDownloadUrl}
+          onClick={(event) => {
+            if (!ticketDownloadUrl) event.preventDefault();
+          }}
+          className={`w-full flex items-center justify-center gap-2 bg-card border-2 border-border text-foreground font-bold py-4 rounded-2xl text-sm mb-3 active:scale-[0.98] transition-transform ${!ticketDownloadUrl ? "opacity-50 pointer-events-none" : ""}`}
+        >
           <Download className="w-4 h-4" />
           Download Ticket
-        </button>
+        </a>
         <button onClick={() => onNavigate("bookings")}
           className="w-full bg-primary text-white font-extrabold py-4 rounded-2xl text-sm shadow-lg shadow-primary/30 active:scale-[0.98] transition-transform">
           View My Bookings
@@ -718,23 +740,111 @@ function SuccessScreen({ booking, finalBooking, onNavigate }: {
   );
 }
 
-// ─── Screen 7: My Bookings (Mock – can be replaced with real API later) ──────
+// â”€â”€â”€ Screen 7: My Bookings (Mock â€“ can be replaced with real API later) â”€â”€â”€â”€â”€â”€
 function MyBookingsScreen({ onNavigate }: { onNavigate: (s: PassengerScreen) => void }) {
-  // This remains a mock for now – you can later call /api/user/bookings/ after adding auth
+  const [bookings, setBookings] = useState<UserBooking[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    getUserBookings()
+      .then(result => {
+        if (!active) return;
+        if (result.data) {
+          setBookings(result.data);
+          setError("");
+        } else {
+          setError(result.error || "Unable to load your bookings.");
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <div className="flex flex-col h-full">
       <div className="bg-gradient-to-br from-[#0D2B5E] to-[#1565C0] px-5 pt-11 pb-5 flex-shrink-0">
         <h2 className="text-white font-extrabold text-xl">My Bookings</h2>
-        <p className="text-white/70 text-sm mt-1">Coming soon – after adding authentication</p>
+        <p className="text-white/70 text-sm mt-1">Your booked trips and ticket details</p>
       </div>
-      <div className="flex-1 flex items-center justify-center">
-        <p className="text-muted-foreground">Login to see your bookings</p>
+      <div className="flex-1 overflow-y-auto px-4 py-4">
+        {loading && (
+          <div className="flex h-full items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        )}
+
+        {!loading && error && (
+          <div className="rounded-2xl border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive">
+            {error === "HTTP 403" ? "Please log in to view your booking history." : error}
+          </div>
+        )}
+
+        {!loading && !error && bookings.length === 0 && (
+          <div className="flex h-full flex-col items-center justify-center text-center">
+            <Ticket className="mb-3 h-12 w-12 text-muted-foreground" />
+            <p className="font-bold text-foreground">No bookings yet</p>
+            <p className="mt-1 text-sm text-muted-foreground">Trips you book while logged in will appear here.</p>
+            <button onClick={() => onNavigate("search")} className="mt-5 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-white">
+              Book a Trip
+            </button>
+          </div>
+        )}
+
+        {!loading && !error && bookings.length > 0 && (
+          <div className="space-y-3">
+            {bookings.map(item => (
+              <div key={item.id} className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-extrabold text-foreground">{item.origin} to {item.destination}</p>
+                    <p className="text-xs text-muted-foreground">{item.trip_date} · {formatTripTime(item.departure_time)} · {item.vehicle}</p>
+                  </div>
+                  <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[10px] font-extrabold capitalize text-primary">
+                    {item.status.replace("_", " ")}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Seat</p>
+                    <p className="font-bold text-foreground">{item.seat_number}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Fare</p>
+                    <p className="font-bold text-foreground">KES {Number(item.fare).toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Reference</p>
+                    <p className="font-mono text-xs font-bold text-foreground">{item.reference || item.id}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Payment</p>
+                    <p className="font-bold text-foreground">{item.payment_status || "PENDING"}</p>
+                  </div>
+                </div>
+                {item.qr_code && (
+                  <a href={item.qr_code} target="_blank" rel="noreferrer" className="mt-4 flex items-center justify-center gap-2 rounded-xl border border-border px-4 py-3 text-sm font-bold text-primary">
+                    <Ticket className="h-4 w-4" />
+                    Open Ticket
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-// ─── Failure Screen ──────────────────────────────────────────────────────────
+// â”€â”€â”€ Failure Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function PaymentFailedScreen({ onNavigate }: { onNavigate: (s: PassengerScreen) => void }) {
   return (
     <div className="flex flex-col h-full items-center justify-center p-6 text-center">
@@ -748,12 +858,8 @@ function PaymentFailedScreen({ onNavigate }: { onNavigate: (s: PassengerScreen) 
   );
 }
 
-// ─── Main PassengerFlow ──────────────────────────────────────────────────────
-<<<<<<< HEAD
+// â”€â”€â”€ Main PassengerFlow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export function PassengerFlow({ initialFrom = "Nakuru", initialTo = "Kisumu", initialDate, initialScreen, onBack }: PassengerFlowProps) {
-=======
-export function PassengerFlow({ initialFrom = "Nakuru", initialTo = "Kisumu", initialScreen, onBack }: PassengerFlowProps) {
->>>>>>> e7d15adab916977681cad1d43ad818a29ec9dfeb
   const [screen, setScreen] = useState<PassengerScreen>(initialScreen || "search");
   const [booking, setBooking] = useState<BookingData>({
     ...DEFAULT_BOOKING, from: initialFrom, to: initialTo, date: initialDate || DEFAULT_BOOKING.date,
@@ -776,11 +882,7 @@ export function PassengerFlow({ initialFrom = "Nakuru", initialTo = "Kisumu", in
       case "seats": return <SeatScreen booking={booking} updateBooking={updateBooking} onNavigate={setScreen} />;
       case "passenger": return <PassengerInfoScreen booking={booking} updateBooking={updateBooking} onNavigate={setScreen} />;
       case "payment": return <PaymentScreen booking={booking} updateBooking={updateBooking} onNavigate={navigateWithBooking} setBookingId={setCurrentBookingId} />;
-<<<<<<< HEAD
-      case "pending": return currentBookingId ? <PendingScreen bookingId={currentBookingId} checkoutRequestId={booking.checkoutRequestId} onNavigate={navigateWithBooking} /> : <div>Error: no booking</div>;
-=======
-      case "pending": return currentBookingId ? <PendingScreen bookingId={currentBookingId} onNavigate={navigateWithBooking} /> : <div>Error: no booking</div>;
->>>>>>> e7d15adab916977681cad1d43ad818a29ec9dfeb
+      case "pending": return currentBookingId ? <PendingScreen booking={booking} bookingId={currentBookingId} checkoutRequestId={booking.checkoutRequestId} onNavigate={navigateWithBooking} /> : <div>Error: no booking</div>;
       case "success": return <SuccessScreen booking={booking} finalBooking={finalBookingData} onNavigate={setScreen} />;
       case "bookings": return <MyBookingsScreen onNavigate={setScreen} />;
       case "payment_failed": return <PaymentFailedScreen onNavigate={setScreen} />;
@@ -804,9 +906,5 @@ export function PassengerFlow({ initialFrom = "Nakuru", initialTo = "Kisumu", in
       </div>
     </div>
   );
-<<<<<<< HEAD
 }
 
-=======
-}
->>>>>>> e7d15adab916977681cad1d43ad818a29ec9dfeb

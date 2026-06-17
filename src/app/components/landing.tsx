@@ -1,30 +1,16 @@
-<<<<<<< HEAD
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Bus, MapPin, Calendar, ArrowRight, Search,
-=======
-import { useState, useRef } from "react";
-import {
-  Bus, MapPin, Calendar, ArrowRight, Search,
-  Phone, Mail, Globe, Share2, MessageCircle,
->>>>>>> e7d15adab916977681cad1d43ad818a29ec9dfeb
   Smartphone, Shield, Clock, Zap, ChevronDown,
-  Menu, X,
+  Menu, X, MessageCircle,
 } from "lucide-react";
 import type { PassengerScreen } from "./passenger-flow";
-<<<<<<< HEAD
 import { getRoutes, type Route } from "../../services/api";
-=======
->>>>>>> e7d15adab916977681cad1d43ad818a29ec9dfeb
 
 type AppMode = "landing" | "passenger" | "admin" | "login" | "register";
 
 interface LandingProps {
-<<<<<<< HEAD
   onNavigate: (mode: AppMode, from?: string, to?: string, screen?: PassengerScreen, date?: string) => void;
-=======
-  onNavigate: (mode: AppMode, from?: string, to?: string, screen?: PassengerScreen) => void;
->>>>>>> e7d15adab916977681cad1d43ad818a29ec9dfeb
   userEmail?: string | null;
   onLogout: () => void;
 }
@@ -61,24 +47,24 @@ const HOW_IT_WORKS = [
   { step: "03", title: "Pay & Travel", desc: "Pay instantly with M-Pesa. Receive your digital ticket and board with ease." },
 ];
 
+const WHATSAPP_SUPPORT_NUMBER = "254113050613";
+const WHATSAPP_SUPPORT_MESSAGE = "Hello Njoroline support, I need help with my booking.";
+const WHATSAPP_SUPPORT_URL = `https://wa.me/${WHATSAPP_SUPPORT_NUMBER}?text=${encodeURIComponent(WHATSAPP_SUPPORT_MESSAGE)}`;
+
 
 export function LandingPage({ onNavigate, userEmail, onLogout }: LandingProps) {
   const [from, setFrom] = useState("Nakuru");
   const [to, setTo] = useState("Kisumu");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
-<<<<<<< HEAD
   const [routes, setRoutes] = useState<Route[]>([]);
   const [routesLoading, setRoutesLoading] = useState(false);
   const [routesError, setRoutesError] = useState<string | null>(null);
-=======
->>>>>>> e7d15adab916977681cad1d43ad818a29ec9dfeb
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showFromDrop, setShowFromDrop] = useState(false);
   const [showToDrop, setShowToDrop] = useState(false);
   const routesRef = useRef<HTMLDivElement>(null);
   const contactRef = useRef<HTMLDivElement>(null);
 
-<<<<<<< HEAD
   useEffect(() => {
     let active = true;
 
@@ -149,8 +135,6 @@ export function LandingPage({ onNavigate, userEmail, onLogout }: LandingProps) {
     return Array.from(new Set([...LOCATIONS, ...routeLocations]));
   }, [routes]);
 
-=======
->>>>>>> e7d15adab916977681cad1d43ad818a29ec9dfeb
   const scrollToSection = (section: "top" | "routes" | "contact") => {
     if (section === "top") {
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -159,13 +143,6 @@ export function LandingPage({ onNavigate, userEmail, onLogout }: LandingProps) {
 
     const sectionRef = section === "routes" ? routesRef.current : contactRef.current;
     sectionRef?.scrollIntoView({ behavior: "smooth", block: "start" });
-<<<<<<< HEAD
-=======
-  };
-
-  const startBooking = (from?: string, to?: string) => {
-    return onNavigate("passenger", from, to);
->>>>>>> e7d15adab916977681cad1d43ad818a29ec9dfeb
   };
 
   const startBooking = (from?: string, to?: string, travelDate = date) => {
@@ -174,6 +151,10 @@ export function LandingPage({ onNavigate, userEmail, onLogout }: LandingProps) {
 
   const handleSearch = () => startBooking(from, to, date);
   const handleRoute = (r: RouteSummary) => startBooking(r.from, r.to, date);
+  const openMyBookings = () => {
+    if (!userEmail) return onNavigate("login");
+    return onNavigate("passenger", undefined, undefined, "bookings");
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground" style={{ scrollbarWidth: "none" }}>      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-border shadow-sm">
@@ -196,7 +177,7 @@ export function LandingPage({ onNavigate, userEmail, onLogout }: LandingProps) {
                 onClick={() => {
                   if (item === 'Home') return scrollToSection('top');
                   if (item === 'Routes') return scrollToSection('routes');
-                  if (item === 'My Bookings') return onNavigate('passenger');
+                  if (item === 'My Bookings') return openMyBookings();
                   if (item === 'Contact') return scrollToSection('contact');
                 }}
                 className="text-sm font-semibold text-muted-foreground hover:text-primary transition-colors">
@@ -210,7 +191,7 @@ export function LandingPage({ onNavigate, userEmail, onLogout }: LandingProps) {
             {userEmail ? (
               <>
                 <button
-                  onClick={() => onNavigate("passenger")}
+                  onClick={openMyBookings}
                   className="text-sm font-semibold text-muted-foreground px-4 py-2 rounded-xl hover:bg-muted/70 hover:text-primary transition-all"
                 >
                   My Trips
@@ -255,7 +236,7 @@ export function LandingPage({ onNavigate, userEmail, onLogout }: LandingProps) {
                 onClick={() => {
                   if (item === 'Home') return scrollToSection('top');
                   if (item === 'Routes') return scrollToSection('routes');
-                  if (item === 'My Bookings') return onNavigate('passenger');
+                  if (item === 'My Bookings') return openMyBookings();
                   if (item === 'Contact') return scrollToSection('contact');
                 }}
                 className="block w-full text-left text-sm font-semibold text-foreground py-2"
@@ -266,7 +247,7 @@ export function LandingPage({ onNavigate, userEmail, onLogout }: LandingProps) {
             <div className="pt-2 space-y-2">
               {userEmail ? (
                 <>
-                  <button onClick={() => onNavigate("passenger")} className="w-full border border-border text-sm font-bold py-3 rounded-xl">My Trips</button>
+                  <button onClick={openMyBookings} className="w-full border border-border text-sm font-bold py-3 rounded-xl">My Trips</button>
                   <button onClick={onLogout} className="w-full border border-border text-sm font-bold py-3 rounded-xl text-destructive">Logout</button>
                 </>
               ) : (
@@ -452,68 +433,7 @@ export function LandingPage({ onNavigate, userEmail, onLogout }: LandingProps) {
             </div>
           ))}
         </div>
-<<<<<<< HEAD
       </section>      <section className="py-20 px-4 sm:px-6 max-w-7xl mx-auto">
-=======
-      </section>
-
-      {/* ── QUICK ROUTES ──────────────────────────────────────── */}
-      <section ref={routesRef} className="py-16 bg-muted/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex justify-between items-end mb-10">
-            <div>
-              <p className="text-primary text-sm font-bold uppercase tracking-widest mb-2">Routes We Serve</p>
-              <h2 className="text-foreground text-3xl font-extrabold">Popular Routes</h2>
-            </div>
-            <button onClick={() => onNavigate("passenger")} className="hidden sm:flex items-center gap-1 text-primary font-semibold text-sm hover:gap-2 transition-all">
-              View all <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {QUICK_ROUTES.map(route => (
-              <button
-                key={`${route.from}-${route.to}`}
-                onClick={() => handleRoute(route)}
-                className="group relative bg-card rounded-3xl border border-border overflow-hidden text-left hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
-              >
-                <div className="relative h-36 bg-slate-300">
-                  <img
-                    src={`https://images.unsplash.com/photo-${route.imgId}?w=400&h=200&fit=crop&auto=format`}
-                    alt={`${route.from} to ${route.to} route`}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  <div className="absolute bottom-3 left-3 right-3">
-                    <div className="flex items-center gap-1 text-white text-sm font-bold">
-                      <span>{route.from}</span>
-                      <ArrowRight className="w-3.5 h-3.5 opacity-70" />
-                      <span>{route.to}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="p-4">
-                  <p className="text-muted-foreground text-xs font-medium mb-2">{route.desc}</p>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-accent font-extrabold text-lg">KES {route.fare}</p>
-                      <p className="text-muted-foreground text-xs">{route.distance} · {route.duration}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-foreground font-bold text-sm">{route.trips}</p>
-                      <p className="text-muted-foreground text-xs">daily trips</p>
-                    </div>
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── HOW IT WORKS ──────────────────────────────────────── */}
-      <section className="py-20 px-4 sm:px-6 max-w-7xl mx-auto">
->>>>>>> e7d15adab916977681cad1d43ad818a29ec9dfeb
         <div className="text-center mb-12">
           <p className="text-primary text-sm font-bold uppercase tracking-widest mb-2">Simple Process</p>
           <h2 className="text-foreground text-3xl font-extrabold">Book in 3 Easy Steps</h2>
@@ -572,7 +492,7 @@ export function LandingPage({ onNavigate, userEmail, onLogout }: LandingProps) {
                   key={l}
                   onClick={() => {
                     if (l === 'Book a Trip') return startBooking();
-                    if (l === 'My Bookings') return onNavigate('passenger');
+                    if (l === 'My Bookings') return openMyBookings();
                     if (l === 'Our Routes') return scrollToSection('routes');
                     if (l === 'About Us') return scrollToSection('top');
                     if (l === 'Contact Us') return scrollToSection('contact');
@@ -590,7 +510,7 @@ export function LandingPage({ onNavigate, userEmail, onLogout }: LandingProps) {
               {displayedRoutes.map(r => (
                 <button key={r.key} onClick={() => handleRoute(r)}
                   className="block text-sm py-1.5 hover:text-white transition-colors">
-                  {r.from} to {r.to} - {r.fare === null ? "fare per trip" : `KES ${r.fare}`}
+                  {r.from} to {r.to}  {r.fare === null ? " " : `- KES ${r.fare}`}
                 </button>
               ))}
             </div>
@@ -614,9 +534,19 @@ export function LandingPage({ onNavigate, userEmail, onLogout }: LandingProps) {
                   <Smartphone className="w-4 h-4 text-accent flex-shrink-0" />
                   <div>
                     <p className="text-sm font-semibold">Customer Care</p>
-                    <p className="text-sm">support@njoroline.co.ke · +254 733 456 789</p>
+                    <p className="text-sm">support@njoroline.co.ke · +254 113 050 613</p>
                   </div>
                 </div>
+                <a
+                  href={WHATSAPP_SUPPORT_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Contact Njoroline support on WhatsApp"
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#25D366] px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-[#20BD5A]"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  WhatsApp Support
+                </a>
               </div>
             </div>
           </div>
