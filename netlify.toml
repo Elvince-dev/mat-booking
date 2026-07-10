@@ -3,6 +3,7 @@
   command = "npm run build"
 
 [[redirects]]
-  from = "/*"
-  to = "/index.html"
+  from = "api/*"
+  to = "https://njoroline-booking.onrender.com/api/:splat"
   status = 200
+  force =true
