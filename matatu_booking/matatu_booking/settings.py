@@ -79,10 +79,16 @@ MIDDLEWARE = [
 ]
 
 # CORS settings – allow your React dev server
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",    # Vite default
-    "http://localhost:3000",    # alternative
-]
+CORS_ALLOWED_ORIGINS = env.list(
+    "CORS_ALLOWED_ORIGINS",
+    default=[
+      "http://localhost:5173",
+      "http://localhost:3000",
+      "https://njoroline-booking.netlify.app",
+    ],
+)
+
+CORS_ALLOW_CREDENTIALS = True
 
 ROOT_URLCONF = 'matatu_booking.urls'
 
