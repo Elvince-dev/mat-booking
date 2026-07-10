@@ -1,6 +1,6 @@
 ﻿// frontend/src/services/api.ts
 
-const API_BASE = ''; // empty because Vite proxy handles /api
+const API_BASE = import.meta.env.VITE_API_URL ?? ''; // empty in local dev so Vite proxy can handle /api
 
 interface ApiResponse<T> {
   data?: T;

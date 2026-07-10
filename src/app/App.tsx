@@ -1,17 +1,31 @@
-﻿import { useState, lazy, Suspense } from "react";
+import { useState, lazy, Suspense } from "react";
+import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { LandingPage } from "./components/landing";
 import { PassengerFlow, type PassengerScreen } from "./components/passenger-flow";
 import { LoginPage } from "./components/login";
 import { RegisterPage } from "./components/register";
 import { ResetPasswordPage } from "./components/reset-password";
 import { confirmPasswordReset, loginUser, logoutUser, registerUser, requestPasswordReset } from "../services/api";
+
 const AdminDashboard = lazy(() => import("./components/admin-dashboard").then(m => ({ default: m.AdminDashboard })));
 
 type AppMode = "landing" | "passenger" | "admin" | "login" | "register" | "reset-password";
 
-const initialMode = (): AppMode => {
-  if (window.location.pathname.startsWith("/reset-password")) return "reset-password";
-  return "landing";
+const getRouteForMode = (mode: AppMode) => {
+  switch (mode) {
+    case "admin":
+      return "/admin";
+    case "login":
+      return "/login";
+    case "register":
+      return "/register";
+    case "reset-password":
+      return "/reset-password";
+    case "passenger":
+      return "/booking";
+    default:
+      return "/";
+  }
 };
 
 const getResetParams = () => {
@@ -39,7 +53,7 @@ const getResetParams = () => {
 };
 
 export default function App() {
-  const [mode, setMode] = useState<AppMode>(initialMode);
+  const navigate = useNavigate();
   const [bookingFrom, setBookingFrom] = useState("Nakuru");
   const [bookingTo, setBookingTo] = useState("Kisumu");
   const [bookingDate, setBookingDate] = useState(new Date().toISOString().split("T")[0]);
@@ -52,14 +66,11 @@ export default function App() {
     if (to) setBookingTo(to);
     if (date) setBookingDate(date);
     setInitialPassengerScreen(screen);
-    setMode(newMode);
+    navigate(getRouteForMode(newMode));
   };
 
   const goHome = () => {
-    if (window.location.pathname === "/reset-password") {
-      window.history.replaceState({}, "", "/");
-    }
-    setMode("landing");
+    navigate("/", { replace: true });
   };
 
   const handleUserLogin = async (username: string, password: string) => {
@@ -72,10 +83,10 @@ export default function App() {
     setUserEmail(user.email || user.username);
     if (user.is_staff || user.is_superuser) {
       setAdminLoggedIn(true);
-      setMode("admin");
+      navigate("/admin");
     } else {
       setAdminLoggedIn(false);
-      setMode("landing");
+      navigate("/");
     }
   };
 
@@ -96,14 +107,14 @@ export default function App() {
 
     setUserEmail(null);
     setAdminLoggedIn(false);
-    setMode("login");
+    navigate("/login");
   };
 
   const handleLogout = async () => {
     await logoutUser();
     setUserEmail(null);
     setAdminLoggedIn(false);
-    setMode("landing");
+    navigate("/");
   };
 
   const handlePasswordResetRequest = async (email: string) => {
@@ -115,53 +126,65 @@ export default function App() {
     const { uid, token } = getResetParams();
     const result = await confirmPasswordReset(uid, token, password, passwordConfirm);
     if (result.error) return result.error;
-    window.history.replaceState({}, "", "/login");
+    navigate("/login", { replace: true });
   };
 
-  if (mode === "admin") {
-    if (!adminLoggedIn) {
-      return <LoginPage onBack={goHome} onLogin={handleUserLogin} onRegister={() => setMode("register")} onPasswordReset={handlePasswordResetRequest} />;
-    }
+  const resetParams = getResetParams();
 
-    return (
-      <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading adminâ€¦</div>}>
-        <AdminDashboard onBack={() => setMode("landing")} />
-      </Suspense>
-    );
-  }
-
-  if (mode === "passenger") {
-    return (
-      <PassengerFlow
-        initialFrom={bookingFrom}
-        initialTo={bookingTo}
-        initialDate={bookingDate}
-        initialScreen={initialPassengerScreen}
-        onBack={() => setMode("landing")}
+  return (
+    <Routes>
+      <Route path="/" element={<LandingPage onNavigate={handleNavigate} userEmail={userEmail} onLogout={handleLogout} />} />
+      <Route path="/login" element={<LoginPage onBack={goHome} onLogin={handleUserLogin} onRegister={() => navigate("/register")} onPasswordReset={handlePasswordResetRequest} />} />
+      <Route path="/register" element={<RegisterPage onBack={goHome} onRegister={handleRegister} onLogin={() => navigate("/login")} />} />
+      <Route
+        path="/booking"
+        element={
+          <PassengerFlow
+            initialFrom={bookingFrom}
+            initialTo={bookingTo}
+            initialDate={bookingDate}
+            initialScreen={initialPassengerScreen}
+            onBack={() => navigate("/")}
+          />
+        }
       />
-    );
-  }
-
-  if (mode === "login") {
-    return <LoginPage onBack={goHome} onLogin={handleUserLogin} onRegister={() => setMode("register")} onPasswordReset={handlePasswordResetRequest} />;
-  }
-
-  if (mode === "register") {
-    return <RegisterPage onBack={goHome} onRegister={handleRegister} onLogin={() => setMode("login")} />;
-  }
-
-  if (mode === "reset-password") {
-    const { uid, token } = getResetParams();
-    return (
-      <ResetPasswordPage
-        uid={uid}
-        token={token}
-        onBack={goHome}
-        onConfirm={handlePasswordResetConfirm}
-        onLogin={() => setMode("login")}
+      <Route
+        path="/admin"
+        element={
+          adminLoggedIn ? (
+            <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading admin</div>}>
+              <AdminDashboard onBack={() => navigate("/")} />
+            </Suspense>
+          ) : (
+            <LoginPage onBack={goHome} onLogin={handleUserLogin} onRegister={() => navigate("/register")} onPasswordReset={handlePasswordResetRequest} />
+          )
+        }
       />
-    );
-  }
-
-  return <LandingPage onNavigate={handleNavigate} userEmail={userEmail} onLogout={handleLogout} />;
+      <Route
+        path="/reset-password"
+        element={
+          <ResetPasswordPage
+            uid={resetParams.uid}
+            token={resetParams.token}
+            onBack={goHome}
+            onConfirm={handlePasswordResetConfirm}
+            onLogin={() => navigate("/login")}
+          />
+        }
+      />
+      <Route
+        path="/reset-password/:uid/:token"
+        element={
+          <ResetPasswordPage
+            uid={resetParams.uid}
+            token={resetParams.token}
+            onBack={goHome}
+            onConfirm={handlePasswordResetConfirm}
+            onLogin={() => navigate("/login")}
+          />
+        }
+      />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
 }
