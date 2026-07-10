@@ -17,7 +17,7 @@ from payments.sms import send_sms
 
 if __name__ == "__main__":
     msg = send_sms(
-        "254736905376",
+        "254106986486",
         "Your booking has been confirmed. Thank you for using our service.",
     )
     print(msg)
