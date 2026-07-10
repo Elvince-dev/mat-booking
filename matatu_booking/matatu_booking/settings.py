@@ -47,7 +47,10 @@ SECRET_KEY = env("SECRET_KEY", default="django-insecure-)mk@p)=u9bz6e9)+31b19khw
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DEBUG", default=False)
 
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
+ALLOWED_HOSTS = env.list(
+    "ALLOWED_HOSTS",
+    default=["localhost", "127.0.0.1", "njoroline-booking.onrender.com"],
+)
 
 
 # Application definition
@@ -89,6 +92,19 @@ CORS_ALLOWED_ORIGINS = env.list(
 )
 
 CORS_ALLOW_CREDENTIALS = True
+
+CSRF_TRUSTED_ORIGINS = env.list(
+    "CSRF_TRUSTED_ORIGINS",
+    default=[
+        "https://njoroline-booking.netlify.app",
+        "https://njoroline-booking.onrender.com",
+    ],
+)
+
+SESSION_COOKIE_SECURE = env.bool("SESSION_COOKIE_SECURE", default=True)
+CSRF_COOKIE_SECURE = env.bool("CSRF_COOKIE_SECURE", default=True)
+SESSION_COOKIE_SAMESITE = env("SESSION_COOKIE_SAMESITE", default="None")
+CSRF_COOKIE_SAMESITE = env("CSRF_COOKIE_SAMESITE", default="None")
 
 ROOT_URLCONF = 'matatu_booking.urls'
 
