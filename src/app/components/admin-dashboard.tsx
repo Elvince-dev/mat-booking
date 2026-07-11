@@ -99,13 +99,14 @@ function AdminShell({ current, onChange, onBack, children }: {
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#F5F7FB]">
-      {/* Mobile Menu Button */}
+      {/* Mobile Menu Button - Always visible on mobile with high z-index */}
       {isMobile && (
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="fixed top-4 left-4 z-50 rounded-lg bg-[#0D1B3E] p-2 text-white"
+          className="fixed top-4 left-4 z-50 rounded-lg bg-[#0D1B3E] p-2 text-white hover:bg-[#0D1B3E]/90 transition-colors"
+          aria-label="Toggle menu"
         >
-          <Menu className="h-5 w-5" />
+          <Menu className="h-6 w-6" />
         </button>
       )}
 
@@ -181,7 +182,7 @@ function Toolbar({ title, subtitle, onRefresh, action }: {
       </div>
       <div className="flex flex-shrink-0 gap-2">
         {action}
-        <button onClick={onRefresh} className="flex items-center gap-1 sm:gap-2 whitespace-nowrap rounded-xl border border-border px-2 sm:px-3 py-2 text-xs sm:text-sm font-bold text-foreground hover:border-primary/30 hover:[...]
+        <button onClick={onRefresh} className="flex items-center gap-1 sm:gap-2 whitespace-nowrap rounded-xl border border-border px-2 sm:px-3 py-2 text-xs sm:text-sm font-bold text-foreground hover:border-primary/30 hover:bg-primary/5 transition-colors">
           <RefreshCw className="h-4 w-4" />
           <span className="hidden sm:inline">Refresh</span>
         </button>
@@ -227,17 +228,17 @@ function VehicleForm({ editing, onDone, onCancel }: { editing: BusRow | null; on
     <form onSubmit={submit} className={`grid gap-3 rounded-xl border border-border bg-card p-3 sm:p-4 ${
       isMobile ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-5"
     }`}>
-      <input required placeholder="Plate number" value={form.plate_number} onChange={e => setForm({ ...form, plate_number: e.target.value })} className="rounded-lg border border-border bg-muted p[...]
+      <input required placeholder="Plate number" value={form.plate_number} onChange={e => setForm({ ...form, plate_number: e.target.value })} className="rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none" />
       <select value={form.vehicle_type} onChange={e => setForm({ ...form, vehicle_type: e.target.value })} className="rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none">
         <option value="matatu">Matatu</option>
         <option value="minibus">Mini-bus</option>
         <option value="coach">Coach</option>
       </select>
-      <input required type="number" min="1" placeholder="Capacity" value={form.capacity} onChange={e => setForm({ ...form, capacity: e.target.value })} className="rounded-lg border border-border [...]
-      <input placeholder="Driver name" value={form.driver_name} onChange={e => setForm({ ...form, driver_name: e.target.value })} className="rounded-lg border border-border bg-muted px-3 py-2 tex[...]
+      <input required type="number" min="1" placeholder="Capacity" value={form.capacity} onChange={e => setForm({ ...form, capacity: e.target.value })} className="rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none" />
+      <input placeholder="Driver name" value={form.driver_name} onChange={e => setForm({ ...form, driver_name: e.target.value })} className="rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none" />
       <div className="flex gap-2">
-        <button className="flex-1 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-white">{editing ? "Save Vehicle" : "Add Vehicle"}</button>
-        {editing && <button type="button" onClick={onCancel} className="rounded-lg border border-border px-3 py-2 text-sm font-bold">Cancel</button>}
+        <button className="flex-1 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-white hover:bg-primary/90 transition-colors">{editing ? "Save Vehicle" : "Add Vehicle"}</button>
+        {editing && <button type="button" onClick={onCancel} className="rounded-lg border border-border px-3 py-2 text-sm font-bold hover:bg-muted transition-colors">Cancel</button>}
       </div>
       {error && <p className="col-span-full text-sm text-destructive">{error}</p>}
     </form>
@@ -271,11 +272,11 @@ function RouteForm({ editing, onDone, onCancel }: { editing: RouteRow | null; on
     <form onSubmit={submit} className={`grid gap-3 rounded-xl border border-border bg-card p-3 sm:p-4 ${
       isMobile ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-3"
     }`}>
-      <input required placeholder="Origin" value={form.origin} onChange={e => setForm({ ...form, origin: e.target.value })} className="rounded-lg border border-border bg-muted px-3 py-2 text-sm o[...]
-      <input required placeholder="Destination" value={form.destination} onChange={e => setForm({ ...form, destination: e.target.value })} className="rounded-lg border border-border bg-muted px-3[...]
+      <input required placeholder="Origin" value={form.origin} onChange={e => setForm({ ...form, origin: e.target.value })} className="rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none" />
+      <input required placeholder="Destination" value={form.destination} onChange={e => setForm({ ...form, destination: e.target.value })} className="rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none" />
       <div className="flex gap-2">
-        <button className="flex-1 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-white">{editing ? "Save Route" : "Add Route"}</button>
-        {editing && <button type="button" onClick={onCancel} className="rounded-lg border border-border px-3 py-2 text-sm font-bold">Cancel</button>}
+        <button className="flex-1 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-white hover:bg-primary/90 transition-colors">{editing ? "Save Route" : "Add Route"}</button>
+        {editing && <button type="button" onClick={onCancel} className="rounded-lg border border-border px-3 py-2 text-sm font-bold hover:bg-muted transition-colors">Cancel</button>}
       </div>
       {error && <p className="col-span-full text-sm text-destructive">{error}</p>}
     </form>
@@ -325,13 +326,13 @@ function TripForm({ data, editing, onDone, onCancel }: { data: AdminPortalData; 
         <option value="">Vehicle</option>
         {data.buses.map(bus => <option key={bus.id} value={bus.id}>{bus.plate_number}</option>)}
       </select>
-      <input required type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none" [...]
-      <input required type="time" value={form.departure_time} onChange={e => setForm({ ...form, departure_time: e.target.value })} className="rounded-lg border border-border bg-muted px-3 py-2 te[...]
-      <input required type="time" value={form.arrival_time} onChange={e => setForm({ ...form, arrival_time: e.target.value })} className="rounded-lg border border-border bg-muted px-3 py-2 text-s[...]
-      <input required type="number" min="1" placeholder="Fare" value={form.fare} onChange={e => setForm({ ...form, fare: e.target.value })} className="rounded-lg border border-border bg-muted px-[...]
+      <input required type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none" />
+      <input required type="time" value={form.departure_time} onChange={e => setForm({ ...form, departure_time: e.target.value })} className="rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none" />
+      <input required type="time" value={form.arrival_time} onChange={e => setForm({ ...form, arrival_time: e.target.value })} className="rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none" />
+      <input required type="number" min="1" placeholder="Fare" value={form.fare} onChange={e => setForm({ ...form, fare: e.target.value })} className="rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none" />
       <div className={`flex gap-2 ${isMobile ? "col-span-1" : "col-span-full sm:col-span-1 lg:col-span-6"}`}>
-        <button className="flex-1 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-white">{editing ? "Save Trip" : "Add Trip"}</button>
-        {editing && <button type="button" onClick={onCancel} className="rounded-lg border border-border px-3 py-2 text-sm font-bold">Cancel</button>}
+        <button className="flex-1 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-white hover:bg-primary/90 transition-colors">{editing ? "Save Trip" : "Add Trip"}</button>
+        {editing && <button type="button" onClick={onCancel} className="rounded-lg border border-border px-3 py-2 text-sm font-bold hover:bg-muted transition-colors">Cancel</button>}
       </div>
       {error && <p className="col-span-full text-sm text-destructive">{error}</p>}
     </form>
@@ -438,8 +439,8 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
                 <thead className="bg-muted/70">
                   <tr>
                     {isMobile 
-                      ? ["Plate", "Type", "Capacity", "Status"].map(header => <th key={header} className="px-3 sm:px-4 py-2 sm:py-3 text-xs font-extrabold uppercase text-muted-foregrou[...]
-                      : ["Plate", "Type", "Capacity", "Driver", "Trips", "Status", "Actions"].map(header => <th key={header} className="px-3 sm:px-4 py-2 sm:py-3 text-xs font-extrabold uppercase text-muted-foregrou[...]
+                      ? ["Plate", "Type", "Capacity", "Status"].map(header => <th key={header} className="px-3 sm:px-4 py-2 sm:py-3 text-xs font-extrabold uppercase text-muted-foreground">{header}</th>)
+                      : ["Plate", "Type", "Capacity", "Driver", "Trips", "Status", "Actions"].map(header => <th key={header} className="px-3 sm:px-4 py-2 sm:py-3 text-xs font-extrabold uppercase text-muted-foreground">{header}</th>)
                     }
                   </tr>
                 </thead>
@@ -452,7 +453,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
                       {!isMobile && <td className="px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm">{bus.driver_name || "-"}</td>}
                       {!isMobile && <td className="px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm">{bus.trips_count}</td>}
                       <td className="px-3 sm:px-4 py-2 sm:py-3">{bus.is_active ? statusBadge("confirmed") : statusBadge("cancelled")}</td>
-                      {!isMobile && <td className="px-3 sm:px-4 py-2 sm:py-3"><button onClick={() => setEditingBus(bus)} className="rounded-lg border border-border px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-bold hover:border-primary/40 hover:t[...]
+                      {!isMobile && <td className="px-3 sm:px-4 py-2 sm:py-3"><button onClick={() => setEditingBus(bus)} className="rounded-lg border border-border px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-bold hover:border-primary/40 hover:text-primary transition-colors">Edit</button></td>}
                     </tr>
                   ))}
                 </tbody>
@@ -489,8 +490,8 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
                       {!isMobile && <td className="px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm">{route.bookings_count}</td>}
                       <td className="px-3 sm:px-4 py-2 sm:py-3">
                         <div className="flex gap-1">
-                          <button onClick={() => setEditingRoute(route)} className="rounded-lg border border-border px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-bold hover:border-primary/40 hover:text-primary">Edit</button>
-                          <button onClick={() => deleteRoute(route)} className="rounded-lg border border-border px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-bold text-red-600 hover:border-red-300 hover:bg-red-50">Del</button>
+                          <button onClick={() => setEditingRoute(route)} className="rounded-lg border border-border px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-bold hover:border-primary/40 hover:text-primary transition-colors">Edit</button>
+                          <button onClick={() => deleteRoute(route)} className="rounded-lg border border-border px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-bold text-red-600 hover:border-red-300 hover:bg-red-50 transition-colors">Del</button>
                         </div>
                       </td>
                     </tr>
@@ -528,7 +529,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
                       {!isMobile && <td className="px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm">{trip.departure_time.slice(0, 5)} - {trip.arrival_time.slice(0, 5)}</td>}
                       <td className="px-3 sm:px-4 py-2 sm:py-3 font-bold text-xs sm:text-sm">{money(trip.fare)}</td>
                       {!isMobile && <td className="px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm">{trip.booked_seats}/{trip.capacity} booked</td>}
-                      <td className="px-3 sm:px-4 py-2 sm:py-3"><button onClick={() => setEditingTrip(trip)} className="rounded-lg border border-border px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-bold hover:border-primary/40 hover[...]
+                      <td className="px-3 sm:px-4 py-2 sm:py-3"><button onClick={() => setEditingTrip(trip)} className="rounded-lg border border-border px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-bold hover:border-primary/40 hover:text-primary transition-colors">Edit</button></td>
                     </tr>
                   ))}
                 </tbody>
@@ -546,7 +547,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
             title="Bookings"
             subtitle={isMobile ? "Passenger details" : "Passenger details, seats, payment status, and ticket QR links"}
             onRefresh={loadData}
-            action={<button onClick={() => downloadCsv("bookings.csv", data.bookings)} className="flex items-center gap-1 sm:gap-2 rounded-xl border border-border px-2 sm:px-3 py-2 text-xs sm:text-sm font-bold"><Download className="h-4 w-4" />CSV</button>}
+            action={<button onClick={() => downloadCsv("bookings.csv", data.bookings)} className="flex items-center gap-1 sm:gap-2 rounded-xl border border-border px-2 sm:px-3 py-2 text-xs sm:text-sm font-bold hover:bg-primary/5 transition-colors"><Download className="h-4 w-4" /><span className="hidden sm:inline">CSV</span></button>}
           />
           <div className="space-y-3 sm:space-y-4 p-3 sm:p-4 lg:p-6">
             <SearchBox value={search} onChange={setSearch} placeholder={isMobile ? "Search..." : "Search passenger, phone, route, reference..."} />
@@ -584,8 +585,8 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
                         </div>
                       </div>
                       <div className="flex gap-2 pt-2 border-t border-border">
-                        <button title="Confirm" onClick={() => actionBooking(booking.id, "confirm")} className="flex-1 rounded-lg p-2 text-xs font-semibold text-green-700 hover:bg-green-50"><Check className="h-4 w-4 inline" /> Confirm</button>
-                        <button title="Cancel" onClick={() => actionBooking(booking.id, "cancel")} className="flex-1 rounded-lg p-2 text-xs font-semibold text-red-700 hover:bg-red-50"><X className="h-4 w-4 inline" /> Cancel</button>
+                        <button title="Confirm" onClick={() => actionBooking(booking.id, "confirm")} className="flex-1 rounded-lg p-2 text-xs font-semibold text-green-700 hover:bg-green-50 transition-colors"><Check className="h-4 w-4 inline mr-1" />Confirm</button>
+                        <button title="Cancel" onClick={() => actionBooking(booking.id, "cancel")} className="flex-1 rounded-lg p-2 text-xs font-semibold text-red-700 hover:bg-red-50 transition-colors"><X className="h-4 w-4 inline mr-1" />Cancel</button>
                       </div>
                     </div>
                   ))
@@ -597,7 +598,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
                 <table className="w-full text-left text-sm">
                   <thead className="bg-muted/70">
                     <tr>
-                      {["Reference", "Passenger", "Route", "Trip", "Seat", "Fare", "Payment", "Status", "QR", "Actions"].map(header => <th key={header} className="px-3 sm:px-4 py-2 sm:py-3 text-xs font-extrabold u[...]
+                      {["Reference", "Passenger", "Route", "Trip", "Seat", "Fare", "Payment", "Status", "QR", "Actions"].map(header => <th key={header} className="px-3 sm:px-4 py-2 sm:py-3 text-xs font-extrabold uppercase text-muted-foreground">{header}</th>)}
                     </tr>
                   </thead>
                   <tbody>
@@ -614,11 +615,11 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
                         <td className="px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm">{money(booking.fare)}</td>
                         <td className="px-3 sm:px-4 py-2 sm:py-3 text-xs">{statusBadge(booking.payment_status || "PENDING")}<br/><span className="text-xs text-muted-foreground">{booking.mpesa_receipt || ""}</span></td>
                         <td className="px-3 sm:px-4 py-2 sm:py-3">{statusBadge(booking.status)}</td>
-                        <td className="px-3 sm:px-4 py-2 sm:py-3">{booking.qr_code ? <a className="text-primary font-bold text-xs" href={booking.qr_code} target="_blank">Open</a> : "-"}</td>
+                        <td className="px-3 sm:px-4 py-2 sm:py-3">{booking.qr_code ? <a className="text-primary font-bold text-xs hover:underline" href={booking.qr_code} target="_blank" rel="noopener noreferrer">Open</a> : "-"}</td>
                         <td className="px-3 sm:px-4 py-2 sm:py-3">
                           <div className="flex gap-1">
-                            <button title="Confirm" onClick={() => actionBooking(booking.id, "confirm")} className="rounded-lg p-2 text-green-700 hover:bg-green-50"><Check className="h-4 w-4" /></button>
-                            <button title="Cancel" onClick={() => actionBooking(booking.id, "cancel")} className="rounded-lg p-2 text-red-700 hover:bg-red-50"><X className="h-4 w-4" /></button>
+                            <button title="Confirm" onClick={() => actionBooking(booking.id, "confirm")} className="rounded-lg p-2 text-green-700 hover:bg-green-50 transition-colors"><Check className="h-4 w-4" /></button>
+                            <button title="Cancel" onClick={() => actionBooking(booking.id, "cancel")} className="rounded-lg p-2 text-red-700 hover:bg-red-50 transition-colors"><X className="h-4 w-4" /></button>
                           </div>
                         </td>
                       </tr>
@@ -635,15 +636,15 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
     if (section === "payments") {
       return (
         <>
-          <Toolbar title="Payments" subtitle={`${data.payments.length} M-Pesa records`} onRefresh={loadData} action={<button onClick={() => downloadCsv("payments.csv", data.payments)} className="flex items-center gap-1 sm:gap-2 rounded-xl border border-border px-2 sm:px-3 py-2 text-xs sm:text-sm font-bold"><Download className="h-4 w-4" />CSV</button>} />
+          <Toolbar title="Payments" subtitle={`${data.payments.length} M-Pesa records`} onRefresh={loadData} action={<button onClick={() => downloadCsv("payments.csv", data.payments)} className="flex items-center gap-1 sm:gap-2 rounded-xl border border-border px-2 sm:px-3 py-2 text-xs sm:text-sm font-bold hover:bg-primary/5 transition-colors"><Download className="h-4 w-4" /><span className="hidden sm:inline">CSV</span></button>} />
           <div className="p-3 sm:p-4 lg:p-6">
             <ResponsiveTable isMobile={isMobile}>
               <table className="w-full text-left text-sm">
                 <thead className="bg-muted/70">
                   <tr>
                     {isMobile
-                      ? ["Passenger", "Amount", "Status", "Created"].map(header => <th key={header} className="px-3 sm:px-4 py-2 sm:py-3 text-xs font-extrabold uppercase text-muted-f[...]
-                      : ["Checkout", "Passenger", "Phone", "Amount", "Status", "Receipt", "Created"].map(header => <th key={header} className="px-3 sm:px-4 py-2 sm:py-3 text-xs font-extrabold uppercase text-muted-f[...]
+                      ? ["Passenger", "Amount", "Status", "Created"].map(header => <th key={header} className="px-3 sm:px-4 py-2 sm:py-3 text-xs font-extrabold uppercase text-muted-foreground">{header}</th>)
+                      : ["Checkout", "Passenger", "Phone", "Amount", "Status", "Receipt", "Created"].map(header => <th key={header} className="px-3 sm:px-4 py-2 sm:py-3 text-xs font-extrabold uppercase text-muted-foreground">{header}</th>)
                     }
                   </tr>
                 </thead>
@@ -739,7 +740,7 @@ function SearchBox({ value, onChange, placeholder }: { value: string; onChange: 
   return (
     <div className="relative max-w-md">
       <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-      <input value={value} onChange={event => onChange(event.target.value)} placeholder={placeholder} className="w-full rounded-xl border border-border bg-card py-2 pl-9 pr-3 text-sm outline-none[...]
+      <input value={value} onChange={event => onChange(event.target.value)} placeholder={placeholder} className="w-full rounded-xl border border-border bg-card py-2 pl-9 pr-3 text-sm outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20" />
     </div>
   );
 }
@@ -751,7 +752,7 @@ function RecentBookings({ bookings }: { bookings: AdminPortalData["bookings"] })
       {bookings.length === 0 ? <EmptyState label="No bookings yet" /> : (
         <div className="space-y-2">
           {bookings.map(booking => (
-            <div key={booking.id} className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2 gap-2">
+            <div key={booking.id} className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2 gap-2 hover:bg-muted/60 transition-colors">
               <div className="min-w-0">
                 <p className="truncate text-xs sm:text-sm font-bold">{booking.passenger_name}</p>
                 <p className="truncate text-xs text-muted-foreground">{booking.route} · Seat {booking.seat_number}</p>
@@ -774,7 +775,7 @@ function RecentPayments({ payments }: { payments: AdminPortalData["payments"] })
       {payments.length === 0 ? <EmptyState label="No payments yet" /> : (
         <div className="space-y-2">
           {payments.map(payment => (
-            <div key={payment.id} className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2 gap-2">
+            <div key={payment.id} className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2 gap-2 hover:bg-muted/60 transition-colors">
               <div className="min-w-0">
                 <p className="truncate text-xs sm:text-sm font-bold">{payment.passenger_name}</p>
                 <p className="truncate text-xs text-muted-foreground">{payment.phone} · {payment.mpesa_receipt || payment.checkout_request_id}</p>
