@@ -103,7 +103,7 @@ function AdminShell({ current, onChange, onBack, children }: {
       {isMobile && (
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="absolute top-4 left-4 z-40 rounded-lg bg-[#0D1B3E] p-2 text-white"
+          className="fixed top-4 left-4 z-50 rounded-lg bg-[#0D1B3E] p-2 text-white"
         >
           <Menu className="h-5 w-5" />
         </button>
@@ -119,16 +119,16 @@ function AdminShell({ current, onChange, onBack, children }: {
             />
           )}
           <aside className={`${
-            isMobile ? "fixed left-0 top-0 h-screen w-60 z-40" : "flex w-60 flex-shrink-0"
-          } flex-col bg-[#0D1B3E]`}>
+            isMobile ? "fixed left-0 top-0 h-screen w-60 z-40" : "relative w-60 flex-shrink-0"
+          } flex flex-col bg-[#0D1B3E]`}>
             <div className="border-b border-white/10 p-5">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary flex-shrink-0">
                   <Bus className="h-5 w-5 text-white" />
                 </div>
-                <div>
-                  <p className="text-sm font-extrabold text-white">NJOROLINE</p>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Admin Portal</p>
+                <div className="min-w-0">
+                  <p className="text-sm font-extrabold text-white truncate">NJOROLINE</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 truncate">Admin Portal</p>
                 </div>
               </div>
             </div>
@@ -140,7 +140,7 @@ function AdminShell({ current, onChange, onBack, children }: {
                     onChange(id);
                     if (isMobile) setSidebarOpen(false);
                   }}
-                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors ${
+                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors min-w-0 ${
                     current === id ? "bg-primary text-white" : "text-white/55 hover:bg-white/10 hover:text-white"
                   }`}
                 >
@@ -150,7 +150,7 @@ function AdminShell({ current, onChange, onBack, children }: {
               ))}
             </nav>
             <div className="border-t border-white/10 p-3">
-              <button onClick={onBack} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-white/55 hover:bg-red-500/10 hover:text-red-300">
+              <button onClick={onBack} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-white/55 hover:bg-red-500/10 hover:text-red-300 min-w-0">
                 <LogOut className="h-[18px] w-[18px] flex-shrink-0" />
                 <span className="truncate">Exit Admin</span>
               </button>
