@@ -144,15 +144,15 @@ function AdminShell({ current, onChange, onBack, children }: {
                     current === id ? "bg-primary text-white" : "text-white/55 hover:bg-white/10 hover:text-white"
                   }`}
                 >
-                  <Icon className="h-[18px] w-[18px]" />
-                  {label}
+                  <Icon className="h-[18px] w-[18px] flex-shrink-0" />
+                  <span className="truncate">{label}</span>
                 </button>
               ))}
             </nav>
             <div className="border-t border-white/10 p-3">
               <button onClick={onBack} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-white/55 hover:bg-red-500/10 hover:text-red-300">
-                <LogOut className="h-[18px] w-[18px]" />
-                Exit Admin
+                <LogOut className="h-[18px] w-[18px] flex-shrink-0" />
+                <span className="truncate">Exit Admin</span>
               </button>
             </div>
           </aside>
