@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import {
   BarChart3, Bus, Calendar, Check, Download, LayoutDashboard, LogOut,
-  Map, RefreshCw, Search, Ticket, Users, Wallet, X,
+  Map, RefreshCw, Search, Ticket, Users, Wallet, X, Menu,
 } from "lucide-react";
 import {
   createAdminBus,
@@ -16,6 +16,7 @@ import {
   updateAdminTrip,
   type AdminPortalData,
 } from "../../services/api";
+import { useIsMobile } from "./ui/use-mobile";
 
 type AdminSection = "dashboard" | "vehicles" | "routes" | "trips" | "bookings" | "payments" | "passengers";
 
@@ -93,41 +94,72 @@ function AdminShell({ current, onChange, onBack, children }: {
   onBack: () => void;
   children: ReactNode;
 }) {
+  const isMobile = useIsMobile();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
     <div className="flex h-screen overflow-hidden bg-[#F5F7FB]">
-      <aside className="flex w-60 flex-shrink-0 flex-col bg-[#0D1B3E]">
-        <div className="border-b border-white/10 p-5">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
-              <Bus className="h-5 w-5 text-white" />
+      {/* Mobile Menu Button */}
+      {isMobile && (
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="absolute top-4 left-4 z-40 rounded-lg bg-[#0D1B3E] p-2 text-white"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+      )}
+
+      {/* Sidebar with overlay on mobile */}
+      {(!isMobile || sidebarOpen) && (
+        <>
+          {isMobile && (
+            <div
+              className="fixed inset-0 z-30 bg-black/50"
+              onClick={() => setSidebarOpen(false)}
+            />
+          )}
+          <aside className={`${
+            isMobile ? "fixed left-0 top-0 h-screen w-60 z-40" : "flex w-60 flex-shrink-0"
+          } flex-col bg-[#0D1B3E]`}>
+            <div className="border-b border-white/10 p-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
+                  <Bus className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-extrabold text-white">NJOROLINE</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Admin Portal</p>
+                </div>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-extrabold text-white">NJOROLINE</p>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Admin Portal</p>
+            <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+              {navItems.map(({ id, label, Icon }) => (
+                <button
+                  key={id}
+                  onClick={() => {
+                    onChange(id);
+                    if (isMobile) setSidebarOpen(false);
+                  }}
+                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors ${
+                    current === id ? "bg-primary text-white" : "text-white/55 hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  <Icon className="h-[18px] w-[18px]" />
+                  {label}
+                </button>
+              ))}
+            </nav>
+            <div className="border-t border-white/10 p-3">
+              <button onClick={onBack} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-white/55 hover:bg-red-500/10 hover:text-red-300">
+                <LogOut className="h-[18px] w-[18px]" />
+                Exit Admin
+              </button>
             </div>
-          </div>
-        </div>
-        <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-          {navItems.map(({ id, label, Icon }) => (
-            <button
-              key={id}
-              onClick={() => onChange(id)}
-              className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors ${
-                current === id ? "bg-primary text-white" : "text-white/55 hover:bg-white/10 hover:text-white"
-              }`}
-            >
-              <Icon className="h-[18px] w-[18px]" />
-              {label}
-            </button>
-          ))}
-        </nav>
-        <div className="border-t border-white/10 p-3">
-          <button onClick={onBack} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-white/55 hover:bg-red-500/10 hover:text-red-300">
-            <LogOut className="h-[18px] w-[18px]" />
-            Exit Admin
-          </button>
-        </div>
-      </aside>
+          </aside>
+        </>
+      )}
+
+      {/* Main Content */}
       <main className="flex-1 overflow-y-auto">
         {children}
       </main>
@@ -142,16 +174,16 @@ function Toolbar({ title, subtitle, onRefresh, action }: {
   action?: ReactNode;
 }) {
   return (
-    <div className="sticky top-0 z-20 flex min-h-16 items-center justify-between border-b border-border bg-white px-6 py-3">
-      <div>
-        <h1 className="text-xl font-extrabold text-foreground">{title}</h1>
-        {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
+    <div className="sticky top-0 z-20 flex flex-col gap-3 border-b border-border bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      <div className="min-w-0">
+        <h1 className="truncate text-xl font-extrabold text-foreground">{title}</h1>
+        {subtitle && <p className="truncate text-sm text-muted-foreground">{subtitle}</p>}
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-shrink-0 gap-2">
         {action}
-        <button onClick={onRefresh} className="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-bold text-foreground hover:border-primary/30 hover:text-primary">
+        <button onClick={onRefresh} className="flex items-center gap-2 whitespace-nowrap rounded-xl border border-border px-3 py-2 text-sm font-bold text-foreground hover:border-primary/30 hover:text-primary">
           <RefreshCw className="h-4 w-4" />
-          Refresh
+          <span className="hidden sm:inline">Refresh</span>
         </button>
       </div>
     </div>
@@ -191,7 +223,7 @@ function VehicleForm({ editing, onDone, onCancel }: { editing: BusRow | null; on
   };
 
   return (
-    <form onSubmit={submit} className="grid grid-cols-5 gap-3 rounded-xl border border-border bg-card p-4">
+    <form onSubmit={submit} className="grid grid-cols-1 gap-3 rounded-xl border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-5">
       <input required placeholder="Plate number" value={form.plate_number} onChange={e => setForm({ ...form, plate_number: e.target.value })} className="rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none" />
       <select value={form.vehicle_type} onChange={e => setForm({ ...form, vehicle_type: e.target.value })} className="rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none">
         <option value="matatu">Matatu</option>
@@ -204,7 +236,7 @@ function VehicleForm({ editing, onDone, onCancel }: { editing: BusRow | null; on
         <button className="flex-1 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-white">{editing ? "Save Vehicle" : "Add Vehicle"}</button>
         {editing && <button type="button" onClick={onCancel} className="rounded-lg border border-border px-3 py-2 text-sm font-bold">Cancel</button>}
       </div>
-      {error && <p className="col-span-5 text-sm text-destructive">{error}</p>}
+      {error && <p className="col-span-full text-sm text-destructive">{error}</p>}
     </form>
   );
 }
@@ -232,14 +264,14 @@ function RouteForm({ editing, onDone, onCancel }: { editing: RouteRow | null; on
   };
 
   return (
-    <form onSubmit={submit} className="grid grid-cols-3 gap-3 rounded-xl border border-border bg-card p-4">
+    <form onSubmit={submit} className="grid grid-cols-1 gap-3 rounded-xl border border-border bg-card p-4 sm:grid-cols-3">
       <input required placeholder="Origin" value={form.origin} onChange={e => setForm({ ...form, origin: e.target.value })} className="rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none" />
       <input required placeholder="Destination" value={form.destination} onChange={e => setForm({ ...form, destination: e.target.value })} className="rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none" />
       <div className="flex gap-2">
         <button className="flex-1 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-white">{editing ? "Save Route" : "Add Route"}</button>
         {editing && <button type="button" onClick={onCancel} className="rounded-lg border border-border px-3 py-2 text-sm font-bold">Cancel</button>}
       </div>
-      {error && <p className="col-span-3 text-sm text-destructive">{error}</p>}
+      {error && <p className="col-span-full text-sm text-destructive">{error}</p>}
     </form>
   );
 }
@@ -275,7 +307,7 @@ function TripForm({ data, editing, onDone, onCancel }: { data: AdminPortalData; 
   };
 
   return (
-    <form onSubmit={submit} className="grid grid-cols-6 gap-3 rounded-xl border border-border bg-card p-4">
+    <form onSubmit={submit} className="grid grid-cols-1 gap-3 rounded-xl border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-6">
       <select required value={form.route_id} onChange={e => setForm({ ...form, route_id: e.target.value })} className="rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none">
         <option value="">Route</option>
         {data.routes.map(route => <option key={route.id} value={route.id}>{route.origin} to {route.destination}</option>)}
@@ -288,11 +320,11 @@ function TripForm({ data, editing, onDone, onCancel }: { data: AdminPortalData; 
       <input required type="time" value={form.departure_time} onChange={e => setForm({ ...form, departure_time: e.target.value })} className="rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none" />
       <input required type="time" value={form.arrival_time} onChange={e => setForm({ ...form, arrival_time: e.target.value })} className="rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none" />
       <input required type="number" min="1" placeholder="Fare" value={form.fare} onChange={e => setForm({ ...form, fare: e.target.value })} className="rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none" />
-      <div className="col-span-6 flex gap-2">
+      <div className="col-span-full flex gap-2 sm:col-span-1 lg:col-span-6">
         <button className="flex-1 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-white">{editing ? "Save Trip" : "Add Trip"}</button>
         {editing && <button type="button" onClick={onCancel} className="rounded-lg border border-border px-3 py-2 text-sm font-bold">Cancel</button>}
       </div>
-      {error && <p className="col-span-6 text-sm text-destructive">{error}</p>}
+      {error && <p className="col-span-full text-sm text-destructive">{error}</p>}
     </form>
   );
 }
@@ -352,22 +384,22 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
   };
 
   const content = () => {
-    if (loading) return <div className="p-8 text-sm text-muted-foreground">Loading admin data...</div>;
-    if (!data) return <div className="p-8 text-sm text-destructive">{error || "Admin data unavailable"}</div>;
+    if (loading) return <div className="p-4 text-sm text-muted-foreground sm:p-8">Loading admin data...</div>;
+    if (!data) return <div className="p-4 text-sm text-destructive sm:p-8">{error || "Admin data unavailable"}</div>;
 
     if (section === "dashboard") {
       const revenue = data.payments.filter(p => p.status === "SUCCESS").reduce((sum, item) => sum + Number(item.amount), 0);
       return (
         <>
           <Toolbar title="Dashboard" subtitle="Live operations summary" onRefresh={loadData} />
-          <div className="space-y-6 p-6">
-            <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+          <div className="space-y-6 p-4 sm:p-6">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <Stat label="Bookings" value={data.bookings.length} Icon={Ticket} />
               <Stat label="Passengers" value={data.passengers.length} Icon={Users} />
               <Stat label="Vehicles" value={data.buses.length} Icon={Bus} />
               <Stat label="Revenue" value={money(revenue)} Icon={Wallet} />
             </div>
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
               <RecentBookings bookings={data.bookings.slice(0, 8)} />
               <RecentPayments payments={data.payments.slice(0, 8)} />
             </div>
@@ -380,21 +412,30 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
       return (
         <>
           <Toolbar title="Vehicles" subtitle={`${data.buses.length} vehicles registered`} onRefresh={loadData} />
-          <div className="space-y-4 p-6">
+          <div className="space-y-4 p-4 sm:p-6">
             <VehicleForm editing={editingBus} onDone={loadData} onCancel={() => setEditingBus(null)} />
-            <DataTable headers={["Plate", "Type", "Capacity", "Driver", "Trips", "Status", "Actions"]}>
-              {data.buses.map(bus => (
-                <tr key={bus.id} className="border-t border-border">
-                  <td className="px-4 py-3 font-bold">{bus.plate_number}</td>
-                  <td className="px-4 py-3 capitalize">{bus.vehicle_type}</td>
-                  <td className="px-4 py-3">{bus.capacity}</td>
-                  <td className="px-4 py-3">{bus.driver_name || "-"}</td>
-                  <td className="px-4 py-3">{bus.trips_count}</td>
-                  <td className="px-4 py-3">{bus.is_active ? statusBadge("confirmed") : statusBadge("cancelled")}</td>
-                  <td className="px-4 py-3"><button onClick={() => setEditingBus(bus)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:border-primary/40 hover:text-primary">Edit</button></td>
-                </tr>
-              ))}
-            </DataTable>
+            <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-muted/70">
+                  <tr>
+                    {["Plate", "Type", "Capacity", "Driver", "Trips", "Status", "Actions"].map(header => <th key={header} className="px-4 py-3 text-xs font-extrabold uppercase text-muted-foreground">{header}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.buses.map(bus => (
+                    <tr key={bus.id} className="border-t border-border">
+                      <td className="px-4 py-3 font-bold">{bus.plate_number}</td>
+                      <td className="px-4 py-3 capitalize">{bus.vehicle_type}</td>
+                      <td className="px-4 py-3">{bus.capacity}</td>
+                      <td className="px-4 py-3">{bus.driver_name || "-"}</td>
+                      <td className="px-4 py-3">{bus.trips_count}</td>
+                      <td className="px-4 py-3">{bus.is_active ? statusBadge("confirmed") : statusBadge("cancelled")}</td>
+                      <td className="px-4 py-3"><button onClick={() => setEditingBus(bus)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:border-primary/40 hover:text-primary">Edit</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </>
       );
@@ -404,25 +445,34 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
       return (
         <>
           <Toolbar title="Routes" subtitle={`${data.routes.length} routes`} onRefresh={loadData} />
-          <div className="space-y-4 p-6">
+          <div className="space-y-4 p-4 sm:p-6">
             <RouteForm editing={editingRoute} onDone={loadData} onCancel={() => setEditingRoute(null)} />
-            <DataTable headers={["Name", "Origin", "Destination", "Trips", "Bookings", "Actions"]}>
-              {data.routes.map(route => (
-                <tr key={route.id} className="border-t border-border">
-                  <td className="px-4 py-3 font-bold">{route.name}</td>
-                  <td className="px-4 py-3">{route.origin}</td>
-                  <td className="px-4 py-3">{route.destination}</td>
-                  <td className="px-4 py-3">{route.trips_count}</td>
-                  <td className="px-4 py-3">{route.bookings_count}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-2">
-                      <button onClick={() => setEditingRoute(route)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:border-primary/40 hover:text-primary">Edit</button>
-                      <button onClick={() => deleteRoute(route)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold text-red-600 hover:border-red-300 hover:bg-red-50">Delete</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </DataTable>
+            <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-muted/70">
+                  <tr>
+                    {["Name", "Origin", "Destination", "Trips", "Bookings", "Actions"].map(header => <th key={header} className="px-4 py-3 text-xs font-extrabold uppercase text-muted-foreground">{header}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.routes.map(route => (
+                    <tr key={route.id} className="border-t border-border">
+                      <td className="px-4 py-3 font-bold">{route.name}</td>
+                      <td className="px-4 py-3">{route.origin}</td>
+                      <td className="px-4 py-3">{route.destination}</td>
+                      <td className="px-4 py-3">{route.trips_count}</td>
+                      <td className="px-4 py-3">{route.bookings_count}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-2">
+                          <button onClick={() => setEditingRoute(route)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:border-primary/40 hover:text-primary">Edit</button>
+                          <button onClick={() => deleteRoute(route)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold text-red-600 hover:border-red-300 hover:bg-red-50">Delete</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </>
       );
@@ -432,21 +482,30 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
       return (
         <>
           <Toolbar title="Trips" subtitle={`${data.trips.length} scheduled trips`} onRefresh={loadData} />
-          <div className="space-y-4 p-6">
+          <div className="space-y-4 p-4 sm:p-6">
             <TripForm data={data} editing={editingTrip} onDone={loadData} onCancel={() => setEditingTrip(null)} />
-            <DataTable headers={["Date", "Route", "Vehicle", "Time", "Fare", "Seats", "Actions"]}>
-              {data.trips.map(trip => (
-                <tr key={trip.id} className="border-t border-border">
-                  <td className="px-4 py-3">{trip.date}</td>
-                  <td className="px-4 py-3 font-semibold">{trip.route}</td>
-                  <td className="px-4 py-3">{trip.bus}</td>
-                  <td className="px-4 py-3">{trip.departure_time.slice(0, 5)} - {trip.arrival_time.slice(0, 5)}</td>
-                  <td className="px-4 py-3 font-bold">{money(trip.fare)}</td>
-                  <td className="px-4 py-3">{trip.booked_seats}/{trip.capacity} booked</td>
-                  <td className="px-4 py-3"><button onClick={() => setEditingTrip(trip)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:border-primary/40 hover:text-primary">Edit</button></td>
-                </tr>
-              ))}
-            </DataTable>
+            <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-muted/70">
+                  <tr>
+                    {["Date", "Route", "Vehicle", "Time", "Fare", "Seats", "Actions"].map(header => <th key={header} className="px-4 py-3 text-xs font-extrabold uppercase text-muted-foreground">{header}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.trips.map(trip => (
+                    <tr key={trip.id} className="border-t border-border">
+                      <td className="px-4 py-3">{trip.date}</td>
+                      <td className="px-4 py-3 font-semibold">{trip.route}</td>
+                      <td className="px-4 py-3">{trip.bus}</td>
+                      <td className="px-4 py-3">{trip.departure_time.slice(0, 5)} - {trip.arrival_time.slice(0, 5)}</td>
+                      <td className="px-4 py-3 font-bold">{money(trip.fare)}</td>
+                      <td className="px-4 py-3">{trip.booked_seats}/{trip.capacity} booked</td>
+                      <td className="px-4 py-3"><button onClick={() => setEditingTrip(trip)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:border-primary/40 hover:text-primary">Edit</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </>
       );
@@ -461,32 +520,41 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
             onRefresh={loadData}
             action={<button onClick={() => downloadCsv("bookings.csv", data.bookings)} className="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-bold"><Download className="h-4 w-4" />CSV</button>}
           />
-          <div className="space-y-4 p-6">
+          <div className="space-y-4 p-4 sm:p-6">
             <SearchBox value={search} onChange={setSearch} placeholder="Search passenger, phone, route, reference..." />
-            <DataTable headers={["Reference", "Passenger", "Route", "Trip", "Seat", "Fare", "Payment", "Status", "QR", "Actions"]}>
-              {filteredBookings.map(booking => (
-                <tr key={booking.id} className="border-t border-border align-top">
-                  <td className="px-4 py-3 font-mono text-xs">{booking.reference || booking.id}</td>
-                  <td className="px-4 py-3">
-                    <p className="font-bold">{booking.passenger_name}</p>
-                    <p className="text-xs text-muted-foreground">{booking.phone_number}</p>
-                  </td>
-                  <td className="px-4 py-3">{booking.route}<br/><span className="text-xs text-muted-foreground">{booking.vehicle}</span></td>
-                  <td className="px-4 py-3">{booking.trip_date}<br/><span className="text-xs text-muted-foreground">{booking.departure_time.slice(0, 5)}</span></td>
-                  <td className="px-4 py-3 font-bold">{booking.seat_number}</td>
-                  <td className="px-4 py-3">{money(booking.fare)}</td>
-                  <td className="px-4 py-3">{statusBadge(booking.payment_status || "PENDING")}<br/><span className="text-xs text-muted-foreground">{booking.mpesa_receipt || ""}</span></td>
-                  <td className="px-4 py-3">{statusBadge(booking.status)}</td>
-                  <td className="px-4 py-3">{booking.qr_code ? <a className="text-primary font-bold text-xs" href={booking.qr_code} target="_blank">Open</a> : "-"}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-1">
-                      <button title="Confirm" onClick={() => actionBooking(booking.id, "confirm")} className="rounded-lg p-2 text-green-700 hover:bg-green-50"><Check className="h-4 w-4" /></button>
-                      <button title="Cancel" onClick={() => actionBooking(booking.id, "cancel")} className="rounded-lg p-2 text-red-700 hover:bg-red-50"><X className="h-4 w-4" /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </DataTable>
+            <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-muted/70">
+                  <tr>
+                    {["Reference", "Passenger", "Route", "Trip", "Seat", "Fare", "Payment", "Status", "QR", "Actions"].map(header => <th key={header} className="px-4 py-3 text-xs font-extrabold uppercase text-muted-foreground">{header}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredBookings.map(booking => (
+                    <tr key={booking.id} className="border-t border-border align-top">
+                      <td className="px-4 py-3 font-mono text-xs">{booking.reference || booking.id}</td>
+                      <td className="px-4 py-3">
+                        <p className="font-bold">{booking.passenger_name}</p>
+                        <p className="text-xs text-muted-foreground">{booking.phone_number}</p>
+                      </td>
+                      <td className="px-4 py-3">{booking.route}<br/><span className="text-xs text-muted-foreground">{booking.vehicle}</span></td>
+                      <td className="px-4 py-3">{booking.trip_date}<br/><span className="text-xs text-muted-foreground">{booking.departure_time.slice(0, 5)}</span></td>
+                      <td className="px-4 py-3 font-bold">{booking.seat_number}</td>
+                      <td className="px-4 py-3">{money(booking.fare)}</td>
+                      <td className="px-4 py-3">{statusBadge(booking.payment_status || "PENDING")}<br/><span className="text-xs text-muted-foreground">{booking.mpesa_receipt || ""}</span></td>
+                      <td className="px-4 py-3">{statusBadge(booking.status)}</td>
+                      <td className="px-4 py-3">{booking.qr_code ? <a className="text-primary font-bold text-xs" href={booking.qr_code} target="_blank">Open</a> : "-"}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-1">
+                          <button title="Confirm" onClick={() => actionBooking(booking.id, "confirm")} className="rounded-lg p-2 text-green-700 hover:bg-green-50"><Check className="h-4 w-4" /></button>
+                          <button title="Cancel" onClick={() => actionBooking(booking.id, "cancel")} className="rounded-lg p-2 text-red-700 hover:bg-red-50"><X className="h-4 w-4" /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </>
       );
@@ -496,20 +564,29 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
       return (
         <>
           <Toolbar title="Payments" subtitle={`${data.payments.length} M-Pesa records`} onRefresh={loadData} action={<button onClick={() => downloadCsv("payments.csv", data.payments)} className="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-bold"><Download className="h-4 w-4" />CSV</button>} />
-          <div className="p-6">
-            <DataTable headers={["Checkout", "Passenger", "Phone", "Amount", "Status", "Receipt", "Created"]}>
-              {data.payments.map(payment => (
-                <tr key={payment.id} className="border-t border-border">
-                  <td className="px-4 py-3 font-mono text-xs">{payment.checkout_request_id}</td>
-                  <td className="px-4 py-3">{payment.passenger_name}<br/><span className="text-xs text-muted-foreground">{payment.booking_reference || payment.booking_id}</span></td>
-                  <td className="px-4 py-3">{payment.phone}</td>
-                  <td className="px-4 py-3 font-bold">{money(payment.amount)}</td>
-                  <td className="px-4 py-3">{statusBadge(payment.status)}</td>
-                  <td className="px-4 py-3">{payment.mpesa_receipt || "-"}</td>
-                  <td className="px-4 py-3">{dateTime(payment.created_at)}</td>
-                </tr>
-              ))}
-            </DataTable>
+          <div className="p-4 sm:p-6">
+            <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-muted/70">
+                  <tr>
+                    {["Checkout", "Passenger", "Phone", "Amount", "Status", "Receipt", "Created"].map(header => <th key={header} className="px-4 py-3 text-xs font-extrabold uppercase text-muted-foreground">{header}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.payments.map(payment => (
+                    <tr key={payment.id} className="border-t border-border">
+                      <td className="px-4 py-3 font-mono text-xs">{payment.checkout_request_id}</td>
+                      <td className="px-4 py-3">{payment.passenger_name}<br/><span className="text-xs text-muted-foreground">{payment.booking_reference || payment.booking_id}</span></td>
+                      <td className="px-4 py-3">{payment.phone}</td>
+                      <td className="px-4 py-3 font-bold">{money(payment.amount)}</td>
+                      <td className="px-4 py-3">{statusBadge(payment.status)}</td>
+                      <td className="px-4 py-3">{payment.mpesa_receipt || "-"}</td>
+                      <td className="px-4 py-3">{dateTime(payment.created_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </>
       );
@@ -518,33 +595,51 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
     return (
       <>
         <Toolbar title="Passengers" subtitle="Passenger contacts from bookings and registered users" onRefresh={loadData} />
-        <div className="grid grid-cols-1 gap-5 p-6 xl:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 p-4 sm:p-6 lg:grid-cols-2">
           <section className="rounded-xl border border-border bg-card p-4">
             <h2 className="mb-3 text-sm font-extrabold">Booking Passengers</h2>
-            <DataTable headers={["Name", "Phone", "Bookings", "Confirmed", "Last Booking"]}>
-              {data.passengers.map(passenger => (
-                <tr key={passenger.phone_number} className="border-t border-border">
-                  <td className="px-4 py-3 font-bold">{passenger.name}</td>
-                  <td className="px-4 py-3">{passenger.phone_number}</td>
-                  <td className="px-4 py-3">{passenger.bookings}</td>
-                  <td className="px-4 py-3">{passenger.confirmed_bookings}</td>
-                  <td className="px-4 py-3">{dateTime(passenger.last_booking_at)}</td>
-                </tr>
-              ))}
-            </DataTable>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-muted/70">
+                  <tr>
+                    {["Name", "Phone", "Bookings", "Confirmed", "Last Booking"].map(header => <th key={header} className="px-4 py-3 text-xs font-extrabold uppercase text-muted-foreground">{header}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.passengers.map(passenger => (
+                    <tr key={passenger.phone_number} className="border-t border-border">
+                      <td className="px-4 py-3 font-bold">{passenger.name}</td>
+                      <td className="px-4 py-3">{passenger.phone_number}</td>
+                      <td className="px-4 py-3">{passenger.bookings}</td>
+                      <td className="px-4 py-3">{passenger.confirmed_bookings}</td>
+                      <td className="px-4 py-3">{dateTime(passenger.last_booking_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </section>
           <section className="rounded-xl border border-border bg-card p-4">
             <h2 className="mb-3 text-sm font-extrabold">Registered Users</h2>
-            <DataTable headers={["Name", "Email", "Role", "Joined"]}>
-              {data.registered_users.map(user => (
-                <tr key={user.id} className="border-t border-border">
-                  <td className="px-4 py-3 font-bold">{`${user.first_name} ${user.last_name}`.trim() || user.username}</td>
-                  <td className="px-4 py-3">{user.email || "-"}</td>
-                  <td className="px-4 py-3">{user.is_staff ? "Admin" : "Passenger"}</td>
-                  <td className="px-4 py-3">{dateTime(user.date_joined)}</td>
-                </tr>
-              ))}
-            </DataTable>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-muted/70">
+                  <tr>
+                    {["Name", "Email", "Role", "Joined"].map(header => <th key={header} className="px-4 py-3 text-xs font-extrabold uppercase text-muted-foreground">{header}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.registered_users.map(user => (
+                    <tr key={user.id} className="border-t border-border">
+                      <td className="px-4 py-3 font-bold">{`${user.first_name} ${user.last_name}`.trim() || user.username}</td>
+                      <td className="px-4 py-3">{user.email || "-"}</td>
+                      <td className="px-4 py-3">{user.is_staff ? "Admin" : "Passenger"}</td>
+                      <td className="px-4 py-3">{dateTime(user.date_joined)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </section>
         </div>
       </>
@@ -553,7 +648,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
 
   return (
     <AdminShell current={section} onChange={setSection} onBack={onBack}>
-      {error && <div className="border-b border-red-200 bg-red-50 px-6 py-2 text-sm font-semibold text-red-700">{error}</div>}
+      {error && <div className="border-b border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 sm:px-6">{error}</div>}
       {content()}
     </AdminShell>
   );
@@ -563,22 +658,7 @@ function SearchBox({ value, onChange, placeholder }: { value: string; onChange: 
   return (
     <div className="relative max-w-md">
       <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-      <input value={value} onChange={event => onChange(event.target.value)} placeholder={placeholder} className="w-full rounded-xl border border-border bg-card py-2 pl-9 pr-3 text-sm outline-none focus:border-primary/40" />
-    </div>
-  );
-}
-
-function DataTable({ headers, children }: { headers: string[]; children: ReactNode }) {
-  return (
-    <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
-      <table className="w-full text-left text-sm">
-        <thead className="bg-muted/70">
-          <tr>
-            {headers.map(header => <th key={header} className="px-4 py-3 text-xs font-extrabold uppercase text-muted-foreground">{header}</th>)}
-          </tr>
-        </thead>
-        <tbody>{children}</tbody>
-      </table>
+      <input value={value} onChange={event => onChange(event.target.value)} placeholder={placeholder} className="w-full rounded-xl border border-border bg-card py-2 pl-9 pr-3 text-sm outline-none" />
     </div>
   );
 }
@@ -591,9 +671,9 @@ function RecentBookings({ bookings }: { bookings: AdminPortalData["bookings"] })
         <div className="space-y-2">
           {bookings.map(booking => (
             <div key={booking.id} className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2">
-              <div>
-                <p className="text-sm font-bold">{booking.passenger_name}</p>
-                <p className="text-xs text-muted-foreground">{booking.route} · Seat {booking.seat_number}</p>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-bold">{booking.passenger_name}</p>
+                <p className="truncate text-xs text-muted-foreground">{booking.route} · Seat {booking.seat_number}</p>
               </div>
               {statusBadge(booking.status)}
             </div>
@@ -612,11 +692,11 @@ function RecentPayments({ payments }: { payments: AdminPortalData["payments"] })
         <div className="space-y-2">
           {payments.map(payment => (
             <div key={payment.id} className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2">
-              <div>
-                <p className="text-sm font-bold">{payment.passenger_name}</p>
-                <p className="text-xs text-muted-foreground">{payment.phone} · {payment.mpesa_receipt || payment.checkout_request_id}</p>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-bold">{payment.passenger_name}</p>
+                <p className="truncate text-xs text-muted-foreground">{payment.phone} · {payment.mpesa_receipt || payment.checkout_request_id}</p>
               </div>
-              <div className="text-right">
+              <div className="text-right flex-shrink-0">
                 <p className="text-sm font-extrabold">{money(payment.amount)}</p>
                 {statusBadge(payment.status)}
               </div>
